@@ -181,13 +181,31 @@
     visibility: visible;
   }
 
+  /*
+   * Break all ancestor containers free from flex/grid height constraints
+   * and overflow clipping so content can flow across multiple print pages.
+   */
+  html, body, #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #root > *,
+  #root > * > *,
+  #root > * > * > *,
+  #root > * > * > * > * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+  }
+
   /* Pull proposal out of any flex/grid layout and make it fill the page */
   #proposal-content {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    min-height: auto;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
