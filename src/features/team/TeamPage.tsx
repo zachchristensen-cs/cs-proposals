@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Users, RotateCw, Trash2, Clock, Mail } from 'lucide-react'
 import { supabase, callEdgeFunction } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmptyState } from '@/components/shared'
 import { InviteDialog } from './InviteDialog'
 import { toast } from 'sonner'
@@ -32,9 +43,11 @@ interface PendingInvite {
 }
 
 export function TeamPage() {
+  const { user } = useAuth()
   const [members, setMembers] = useState<StaffMember[]>([])
   const [invites, setInvites] = useState<PendingInvite[]>([])
   const [loading, setLoading] = useState(true)
+  const [removeTarget, setRemoveTarget] = useState<StaffMember | null>(null)
 
   async function loadData() {
     const [{ data: staffData }, { data: inviteData }] = await Promise.all([
@@ -67,7 +80,7 @@ export function TeamPage() {
     }
   }
 
-  async function handleDelete(invite: PendingInvite) {
+  async function handleDeleteInvite(invite: PendingInvite) {
     const { error } = await callEdgeFunction('delete-invite', {
       invite_id: invite.id,
     })
@@ -77,6 +90,22 @@ export function TeamPage() {
       setInvites((prev) => prev.filter((i) => i.id !== invite.id))
       toast.success('Invite cancelled')
     }
+  }
+
+  async function handleRemoveMember() {
+    if (!removeTarget) return
+
+    const { error } = await callEdgeFunction('delete-member', {
+      member_id: removeTarget.id,
+    })
+
+    if (error) {
+      toast.error(error)
+    } else {
+      setMembers((prev) => prev.filter((m) => m.id !== removeTarget.id))
+      toast.success('Team member removed')
+    }
+    setRemoveTarget(null)
   }
 
   return (
@@ -111,6 +140,7 @@ export function TeamPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -126,6 +156,18 @@ export function TeamPage() {
                         <Badge variant={m.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
                           {m.role}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {m.id !== user?.id && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setRemoveTarget(m)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -179,7 +221,7 @@ export function TeamPage() {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(inv)}
+                            onClick={() => handleDeleteInvite(inv)}
                           >
                             <Trash2 className="mr-1.5 size-3.5" />
                             Cancel
@@ -194,6 +236,27 @@ export function TeamPage() {
           )}
         </div>
       )}
+
+      <AlertDialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove team member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{' '}
+              <span className="font-medium text-foreground">
+                {removeTarget?.full_name || removeTarget?.email}
+              </span>
+              ? They will lose access to Cambridge Studio immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleRemoveMember}>
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageWrapper>
   )
 }

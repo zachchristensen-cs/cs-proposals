@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Plus } from 'lucide-react'
+import { FileText, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type { Proposal } from '@/types/database'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -14,9 +14,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { EmptyState } from '@/components/shared'
 import { timeAgo } from '@/lib/utils'
 import { formatCurrency } from './lib/formatCurrency'
+import { toast } from 'sonner'
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
   draft: 'outline',
@@ -27,6 +38,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
 export function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -40,6 +52,23 @@ export function ProposalsPage() {
     }
     load()
   }, [])
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+
+    const { error } = await supabase
+      .from('proposals')
+      .delete()
+      .eq('id', deleteTarget.id)
+
+    if (error) {
+      toast.error('Failed to delete proposal')
+    } else {
+      setProposals((prev) => prev.filter((p) => p.id !== deleteTarget.id))
+      toast.success('Proposal deleted')
+    }
+    setDeleteTarget(null)
+  }
 
   return (
     <PageWrapper
@@ -83,6 +112,7 @@ export function ProposalsPage() {
               <TableHead>Tier</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Updated</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -110,11 +140,45 @@ export function ProposalsPage() {
                 <TableCell className="text-right text-muted-foreground">
                   {timeAgo(p.updated_at)}
                 </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeleteTarget(p)
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete proposal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the proposal for{' '}
+              <span className="font-medium text-foreground">
+                {deleteTarget?.client_name || 'Untitled'}
+              </span>
+              ? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageWrapper>
   )
 }
