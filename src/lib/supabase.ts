@@ -22,6 +22,7 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     apikey: supabaseAnonKey,
+    Authorization: `Bearer ${supabaseAnonKey}`,
   }
 
   if (requireAuth) {
