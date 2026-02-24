@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Download, User, Play, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Download, User, Play, MessageSquare } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Proposal, ProposalContent, ProposalMessage, ProposalAttachment } from '@/types/database'
@@ -93,6 +93,9 @@ export function EditProposalPage() {
   }, [messages])
 
   // Resize drag handlers
+  const SNAP_DEFAULT = 40
+  const SNAP_THRESHOLD = 3 // snap when within 3% of default
+
   const handleMouseDown = useCallback(() => {
     isDragging.current = true
     document.body.style.cursor = 'col-resize'
@@ -101,8 +104,11 @@ export function EditProposalPage() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !containerRef.current) return
       const rect = containerRef.current.getBoundingClientRect()
-      const pct = ((e.clientX - rect.left) / rect.width) * 100
-      setChatWidth(Math.min(60, Math.max(20, pct)))
+      let pct = ((e.clientX - rect.left) / rect.width) * 100
+      pct = Math.min(60, Math.max(20, pct))
+      // Snap to default
+      if (Math.abs(pct - SNAP_DEFAULT) < SNAP_THRESHOLD) pct = SNAP_DEFAULT
+      setChatWidth(pct)
     }
 
     const handleMouseUp = () => {
@@ -378,11 +384,11 @@ export function EditProposalPage() {
       </div>
 
       {/* Split view */}
-      <div ref={containerRef} className="flex flex-1 overflow-hidden">
+      <div ref={containerRef} className="relative flex flex-1 overflow-hidden">
         {/* Chat panel */}
         {!chatCollapsed && (
           <div
-            className="flex flex-col border-r border-border/50"
+            className="flex shrink-0 flex-col border-r border-border/50"
             style={{ width: `${chatWidth}%` }}
           >
             <div className="chat-scroll flex-1 overflow-y-auto px-5 py-6">
@@ -423,26 +429,28 @@ export function EditProposalPage() {
           </div>
         )}
 
-        {/* Resize handle + collapse toggle */}
-        <div className="relative flex shrink-0 items-center">
-          {!chatCollapsed && (
-            <div
-              className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-primary/10 active:bg-primary/20"
-              onMouseDown={handleMouseDown}
-            />
-          )}
-          <button
-            onClick={() => setChatCollapsed(!chatCollapsed)}
-            className="flex h-8 w-6 items-center justify-center text-muted-foreground hover:text-foreground"
-            title={chatCollapsed ? 'Show chat' : 'Hide chat'}
+        {/* Drag handle — invisible 6px strip over the border, shows line on hover */}
+        {!chatCollapsed && (
+          <div
+            className="group absolute top-0 bottom-0 z-10 w-1.5 cursor-col-resize"
+            style={{ left: `${chatWidth}%`, transform: 'translateX(-50%)' }}
+            onMouseDown={handleMouseDown}
+            onDoubleClick={() => setChatCollapsed(true)}
           >
-            {chatCollapsed ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
+            <div className="h-full w-px mx-auto opacity-0 bg-primary/40 transition group-hover:opacity-100 group-active:opacity-100" />
+          </div>
+        )}
+
+        {/* Collapsed: tab on left edge to reopen chat */}
+        {chatCollapsed && (
+          <button
+            onClick={() => setChatCollapsed(false)}
+            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 flex h-10 w-5 items-center justify-center rounded-r-md border border-l-0 bg-background text-muted-foreground opacity-0 transition-opacity hover:opacity-100 hover:text-foreground"
+            title="Show chat"
+          >
+            <MessageSquare className="size-3.5" />
           </button>
-        </div>
+        )}
 
         {/* Preview panel */}
         <div className="flex-1 overflow-y-auto">
