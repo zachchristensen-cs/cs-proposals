@@ -22,7 +22,6 @@ export function PublicProposalPage() {
         .from('proposals')
         .select('content, client_name')
         .eq('slug', slug!)
-        .eq('status', 'sent')
         .single()
 
       if (error || !data) {
