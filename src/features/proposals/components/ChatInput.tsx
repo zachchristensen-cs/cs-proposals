@@ -142,6 +142,7 @@ export function ChatInput({ onSend, disabled, proposalId }: ChatInputProps) {
           file_size: data.file_size,
           file_type: data.file_type,
           extracted_text: data.extracted_text,
+          base64: data.base64,
         },
       ])
     } catch {

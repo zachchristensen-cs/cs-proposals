@@ -335,7 +335,7 @@ Deno.serve(async (req) => {
         stream: true,
         system: systemPrompt,
         messages: messages.map(
-          (m: { role: string; content: string }) => ({
+          (m: { role: string; content: string | unknown[] }) => ({
             role: m.role,
             content: m.content,
           }),

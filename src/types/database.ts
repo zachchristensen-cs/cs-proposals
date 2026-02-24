@@ -202,6 +202,7 @@ export interface ProposalAttachment {
   file_size: number
   file_type: string
   extracted_text?: string
+  base64?: string
 }
 
 export interface ProposalMessage {

@@ -95,6 +95,15 @@ Deno.serve(async (req) => {
       file.name.endsWith(".csv")
     ) {
       extractedText = new TextDecoder().decode(buffer)
+    } else if (file.type === "application/pdf") {
+      // Convert to base64 for Claude's native PDF support
+      const bytes = new Uint8Array(buffer)
+      let binary = ""
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      base64 = btoa(binary)
+      extractedText = `[Attached PDF: ${file.name}]`
     } else if (file.type.startsWith("image/")) {
       // Return base64 for Claude vision
       const bytes = new Uint8Array(buffer)
@@ -103,6 +112,7 @@ Deno.serve(async (req) => {
         binary += String.fromCharCode(bytes[i])
       }
       base64 = btoa(binary)
+      extractedText = `[Attached image: ${file.name}]`
     } else {
       extractedText = `[Uploaded file: ${file.name} — content type not supported for text extraction]`
     }

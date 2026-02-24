@@ -160,7 +160,7 @@ export function EditProposalPage() {
   async function handleSend(text: string, attachments?: ProposalAttachment[]) {
     if ((!text.trim() && !attachments?.length) || isStreaming || !id || !content) return
 
-    // Build the message content — include extracted text from attachments
+    // Build the display/DB message content (text only — no base64)
     let messageContent = text.trim()
     if (attachments?.length) {
       const attachmentTexts = attachments
@@ -168,6 +168,32 @@ export function EditProposalPage() {
         .map((a) => `[Attached file: ${a.file_name}]\n${a.extracted_text}`)
       if (attachmentTexts.length) {
         messageContent += '\n\n' + attachmentTexts.join('\n\n')
+      }
+    }
+
+    // Build multimodal API content for Claude (PDFs/images as native content blocks)
+    let apiContent: string | Array<Record<string, unknown>> = messageContent
+
+    if (attachments?.length) {
+      const blocks: Array<Record<string, unknown>> = []
+
+      for (const att of attachments) {
+        if (att.base64 && att.file_type === 'application/pdf') {
+          blocks.push({
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: att.base64 },
+          })
+        } else if (att.base64 && att.file_type.startsWith('image/')) {
+          blocks.push({
+            type: 'image',
+            source: { type: 'base64', media_type: att.file_type, data: att.base64 },
+          })
+        }
+      }
+
+      if (blocks.length > 0) {
+        if (messageContent) blocks.push({ type: 'text', text: messageContent })
+        apiContent = blocks
       }
     }
 
@@ -194,10 +220,11 @@ export function EditProposalPage() {
     let buffer = ''
 
     try {
-      const allMessages = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+      // Previous messages use plain text, current message uses multimodal content
+      const allMessages = [
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: apiContent },
+      ]
 
       const { stream, error } = await streamEdgeFunction('proposal-chat', {
         messages: allMessages,
