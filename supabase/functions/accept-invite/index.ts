@@ -91,23 +91,25 @@ Deno.serve(async (req) => {
       console.warn("Role upsert warning:", roleError.message)
     }
 
-    // Add user to org
-    const { error: joinError } = await supabaseAdmin
-      .from("user_organizations")
-      .upsert(
-        {
-          user_id: user.id,
-          organization_id: invite.organization_id,
-          is_owner: false,
-        },
-        { onConflict: "user_id,organization_id" },
-      )
+    // Add user to org (only if invite has an organization)
+    if (invite.organization_id) {
+      const { error: joinError } = await supabaseAdmin
+        .from("user_organizations")
+        .upsert(
+          {
+            user_id: user.id,
+            organization_id: invite.organization_id,
+            is_owner: false,
+          },
+          { onConflict: "user_id,organization_id" },
+        )
 
-    if (joinError) {
-      return Response.json(
-        { error: `Failed to join organization: ${joinError.message}` },
-        { status: 500, headers: corsHeaders },
-      )
+      if (joinError) {
+        return Response.json(
+          { error: `Failed to join organization: ${joinError.message}` },
+          { status: 500, headers: corsHeaders },
+        )
+      }
     }
 
     // Mark invite as accepted
