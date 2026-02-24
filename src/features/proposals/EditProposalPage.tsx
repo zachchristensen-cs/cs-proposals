@@ -429,15 +429,22 @@ export function EditProposalPage() {
           </div>
         )}
 
-        {/* Drag handle — invisible 6px strip over the border, shows line on hover */}
+        {/* Drag handle — invisible strip over the border, shows line + collapse button on hover */}
         {!chatCollapsed && (
           <div
-            className="group absolute top-0 bottom-0 z-10 w-1.5 cursor-col-resize"
+            className="group absolute top-0 bottom-0 z-10 w-4 cursor-col-resize"
             style={{ left: `${chatWidth}%`, transform: 'translateX(-50%)' }}
             onMouseDown={handleMouseDown}
-            onDoubleClick={() => setChatCollapsed(true)}
           >
-            <div className="h-full w-px mx-auto opacity-0 bg-primary/40 transition group-hover:opacity-100 group-active:opacity-100" />
+            <div className="h-full w-px mx-auto opacity-0 bg-primary/30 transition group-hover:opacity-100 group-active:opacity-100" />
+            <button
+              onClick={(e) => { e.stopPropagation(); setChatCollapsed(true) }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100"
+              title="Hide chat"
+            >
+              <ArrowLeft className="size-3" />
+            </button>
           </div>
         )}
 
