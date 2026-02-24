@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Role lookup failed: ${roleError.message}` }, { status: 500, headers: corsHeaders })
     }
 
-    if (roleData?.role !== "admin") {
+    if (!roleData?.role || !["admin", "member"].includes(roleData.role)) {
       return Response.json({ error: "Admin access required" }, { status: 403, headers: corsHeaders })
     }
 
@@ -105,8 +105,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!orgId) {
-      return Response.json({ error: "Organization is required" }, { status: 400, headers: corsHeaders })
+    const inviteRole = role || "client"
+
+    // Only require organization for client invites
+    if (!orgId && inviteRole === "client") {
+      return Response.json({ error: "Organization is required for client invites" }, { status: 400, headers: corsHeaders })
     }
 
     // Generate invite token
@@ -115,8 +118,8 @@ Deno.serve(async (req) => {
     // Create invite record
     const { error: inviteError } = await supabaseAdmin.from("client_invites").insert({
       email: email.trim().toLowerCase(),
-      organization_id: orgId,
-      role: role || "client",
+      organization_id: orgId || null,
+      role: inviteRole,
       invited_by: user.id,
       token,
     })

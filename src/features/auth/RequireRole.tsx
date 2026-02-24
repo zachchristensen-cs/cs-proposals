@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import type { UserRole } from '@/types/modules'
 import { useAuth } from '@/contexts/AuthContext'
 
-export function RequireRole({ role: requiredRole }: { role: UserRole }) {
+export function RequireRole({ roles }: { roles: UserRole[] }) {
   const { role, loading } = useAuth()
 
   if (loading) {
@@ -13,8 +13,8 @@ export function RequireRole({ role: requiredRole }: { role: UserRole }) {
     )
   }
 
-  if (role !== requiredRole) {
-    const redirect = role === 'admin' ? '/admin' : '/dashboard'
+  if (!role || !roles.includes(role)) {
+    const redirect = role === 'admin' || role === 'member' ? '/admin' : '/dashboard'
     return <Navigate to={redirect} replace />
   }
 

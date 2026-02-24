@@ -25,7 +25,12 @@ export async function callEdgeFunction<T = Record<string, unknown>>(
   }
 
   if (requireAuth) {
-    const { data: { session } } = await supabase.auth.getSession()
+    let { data: { session } } = await supabase.auth.getSession()
+    // If session is missing or expired, force a refresh
+    if (!session?.access_token) {
+      const { data } = await supabase.auth.refreshSession()
+      session = data.session
+    }
     if (!session?.access_token) {
       return { data: null, error: 'Session expired. Please log in again.' }
     }

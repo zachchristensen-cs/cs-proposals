@@ -7,6 +7,7 @@ export interface User {
   email: string
   full_name: string | null
   avatar_url: string | null
+  cal_com_link: string | null
   created_at: string
 }
 
@@ -74,154 +75,140 @@ export interface AdminSettings {
   default_billing_cycle_day: number
   slack_webhook_url: string | null
   boldsign_api_key: string | null
+  kanban_columns: string[]
+  cal_com_base_url: string | null
+  notion_clients_tracker_db_id: string | null
 }
 
-// ─── Maintenance Tables ──────────────────────────────────────
+// ─── Proposals ──────────────────────────────────────────────
 
-export type TicketStatus =
-  | 'submitted'
-  | 'processing'
-  | 'in_dev'
-  | 'in_progress'
-  | 'completed'
+export type ProposalStatus = 'draft' | 'sent' | 'archived'
+export type ProposalTier = 1 | 2 | 3
 
-export interface Ticket {
-  id: string
-  organization_id: string
-  user_id: string
+export interface ProposalLineItem {
+  name: string
+  description: string
+  price: number
+}
+
+export interface ProposalPhaseGroup {
+  name: string
+  items: string[]
+}
+
+export interface ProposalPhase {
+  name: string
+  timeline?: string
+  price: number
+  subtotal: number
+  narrative?: string
+  groups?: ProposalPhaseGroup[]
+  items: ProposalLineItem[]
+}
+
+export interface ProposalPaymentTerm {
+  label: string
+  amount: number
+  description: string
+}
+
+export interface ProposalMaintenanceTier {
+  name: string
+  price: string
+  summary: string
+  description: string
+}
+
+export interface ProposalTeamMember {
+  name: string
+  role: string
+  bio: string
+  photo_url?: string
+  initials: string
+}
+
+export interface ProposalPersona {
+  icon: string
   title: string
-  raw_message: string
-  processed_content: string | null
-  status: TicketStatus
-  notion_page_id: string | null
-  created_at: string
-  completed_at: string | null
+  description: string
 }
 
-export interface TicketAttachment {
+export interface ProposalContent {
+  cover: {
+    client_name: string
+    prepared_for?: string
+    date: string
+    timeline?: string
+    description: string
+  }
+
+  opportunity?: {
+    paragraphs: string[]
+  }
+
+  personas?: {
+    intro?: string
+    items: ProposalPersona[]
+  }
+
+  phases: ProposalPhase[]
+
+  total: number
+
+  payment: {
+    terms: ProposalPaymentTerm[]
+  }
+
+  maintenance?: {
+    tiers: ProposalMaintenanceTier[]
+    recommendation?: string
+  }
+
+  team?: {
+    intro: string
+    members: ProposalTeamMember[]
+  }
+
+  notes?: {
+    items: string[]
+  }
+
+  timing_note?: string
+
+  contact?: {
+    name: string
+    email: string
+    phone: string
+  }
+}
+
+export interface Proposal {
   id: string
-  ticket_id: string
+  slug: string
+  status: ProposalStatus
+  tier: ProposalTier | null
+  client_name: string | null
+  client_contact: string | null
+  date: string | null
+  content: ProposalContent
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ProposalAttachment {
   file_name: string
   file_path: string
   file_size: number
   file_type: string
-  created_at: string
+  extracted_text?: string
 }
 
-// ─── Projects Tables ─────────────────────────────────────────
-
-export type ProjectStatus =
-  | 'onboarding'
-  | 'active'
-  | 'completed'
-  | 'archived'
-
-export type ContractStatus =
-  | 'pending'
-  | 'sent'
-  | 'signed'
-  | 'not_required'
-
-export type PaymentStatus =
-  | 'pending'
-  | 'deposit_paid'
-  | 'fully_paid'
-  | 'not_required'
-
-export type PhaseStatus =
-  | 'not_started'
-  | 'in_progress'
-  | 'completed'
-
-export type RoundStatus =
-  | 'not_started'
-  | 'in_progress'
-  | 'delivered'
-  | 'review'
-  | 'approved'
-  | 'not_needed'
-
-export type FileCategory =
-  | 'onboarding'
-  | 'asset'
-  | 'deliverable'
-  | 'reference'
-
-export interface Project {
+export interface ProposalMessage {
   id: string
-  organization_id: string
-  name: string
-  status: ProjectStatus
-  assigned_am: string | null
-  created_at: string
-}
-
-export interface ProjectOnboarding {
-  id: string
-  project_id: string
-  step_contract: boolean
-  step_payment: boolean
-  step_questionnaire: boolean
-  step_files: boolean
-  contract_status: ContractStatus
-  contract_boldsign_id: string | null
-  contract_signed_at: string | null
-  payment_status: PaymentStatus
-  deposit_amount: number
-  total_amount: number
-  stripe_invoice_id: string | null
-  questionnaire_completed: boolean
-  questionnaire_data: Record<string, unknown>[] | null
-  files_uploaded: boolean
-  completed_at: string | null
-}
-
-export interface QuestionnaireQuestion {
-  id: string
-  question: string
-  required: boolean
-  order: number
-}
-
-export interface QuestionnaireTemplate {
-  id: string
-  name: string
-  questions: QuestionnaireQuestion[]
-  is_default: boolean
-  created_at: string
-}
-
-export interface ProjectPhase {
-  id: string
-  project_id: string
-  name: string
-  planned_rounds: number
-  status: PhaseStatus
-  sort_order: number
-  created_at: string
-}
-
-export interface PhaseRound {
-  id: string
-  phase_id: string
-  round_number: number
-  status: RoundStatus
-  feedback_url: string | null
-  delivery_date: string | null
-  feedback_notes: string | null
-  feedback_submitted_at: string | null
-  is_scope_addition: boolean
-  created_at: string
-}
-
-export interface ProjectFile {
-  id: string
-  project_id: string
-  uploaded_by: string
-  file_name: string
-  file_path: string
-  file_size: number
-  file_type: string
-  category: FileCategory
+  proposal_id: string
+  role: 'user' | 'assistant'
+  content: string
+  attachments: ProposalAttachment[]
   created_at: string
 }

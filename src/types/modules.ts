@@ -1,3 +1,3 @@
 export type ModuleSlug = 'maintenance' | 'projects'
 
-export type UserRole = 'admin' | 'client'
+export type UserRole = 'admin' | 'member' | 'client'

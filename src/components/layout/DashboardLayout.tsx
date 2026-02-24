@@ -12,7 +12,7 @@ export function DashboardLayout() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r bg-background lg:block">
+      <aside className="hidden w-56 shrink-0 border-r border-border/60 bg-[#faf9f7] lg:block">
         <Sidebar />
       </aside>
 
@@ -27,7 +27,7 @@ export function DashboardLayout() {
           {/* Sidebar panel */}
           <aside
             className={cn(
-              'fixed inset-y-0 left-0 z-50 w-64 border-r bg-background shadow-lg',
+              'fixed inset-y-0 left-0 z-50 w-56 border-r border-border/60 bg-[#faf9f7] shadow-lg',
               'animate-in slide-in-from-left duration-200',
             )}
           >

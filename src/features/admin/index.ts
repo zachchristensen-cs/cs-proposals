@@ -1,7 +1,0 @@
-export { AdminPage } from './AdminPage'
-export { AdminClientsPage } from './AdminClientsPage'
-export { AdminMaintenancePage } from './AdminMaintenancePage'
-export { AdminProjectsPage } from './AdminProjectsPage'
-export { AdminSettingsPage } from './AdminSettingsPage'
-export { AdminTicketDetailPage } from './AdminTicketDetailPage'
-export { AdminOrgDetailPage } from './AdminOrgDetailPage'

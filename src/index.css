@@ -151,3 +151,70 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+/* Chat — typing indicator animation */
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+  30% { transform: translateY(-4px); opacity: 0.8; }
+}
+
+/* Chat — slim scrollbar */
+.chat-scroll::-webkit-scrollbar { width: 5px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.08); border-radius: 3px; }
+.chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.14); }
+
+/* Print styles — used by "Download PDF" to isolate proposal content */
+@media print {
+  /* Hide everything except the proposal */
+  body > *:not(#root) {
+    display: none !important;
+  }
+
+  /* Hide all app chrome — sidebar, top bar, chat panel, etc. */
+  #root * {
+    visibility: hidden;
+  }
+
+  #proposal-content,
+  #proposal-content * {
+    visibility: visible;
+  }
+
+  /* Pull proposal out of any flex/grid layout and make it fill the page */
+  #proposal-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    min-height: auto;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove max-width so it fills the print area */
+  #proposal-content > div {
+    max-width: none;
+    padding: 0;
+  }
+
+  /* Ensure images print */
+  #proposal-content img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid awkward page breaks in the middle of sections */
+  #proposal-content section,
+  #proposal-content .phase-section {
+    break-inside: avoid;
+  }
+
+  /* Page setup — margin handles spacing on all pages uniformly */
+  @page {
+    size: letter;
+    margin: 0.6in 0.75in;
+  }
+}
+

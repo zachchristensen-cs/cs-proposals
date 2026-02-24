@@ -10,6 +10,7 @@ interface OrgContextValue {
   organizations: Organization[]
   activeOrg: Organization | null
   setActiveOrg: (id: string) => void
+  refreshOrg: () => Promise<void>
   loading: boolean
 }
 
@@ -31,6 +32,22 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     },
     [organizations],
   )
+
+  const refreshOrg = useCallback(async () => {
+    if (!activeOrg) return
+    const { data } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', activeOrg.id)
+      .single()
+    if (data) {
+      const updated = data as Organization
+      setActiveOrgState(updated)
+      setOrganizations((prev) =>
+        prev.map((o) => (o.id === updated.id ? updated : o)),
+      )
+    }
+  }, [activeOrg])
 
   useEffect(() => {
     if (authLoading) return
@@ -73,7 +90,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, [user, authLoading])
 
   return (
-    <OrgContext.Provider value={{ organizations, activeOrg, setActiveOrg, loading }}>
+    <OrgContext.Provider value={{ organizations, activeOrg, setActiveOrg, refreshOrg, loading }}>
       {children}
     </OrgContext.Provider>
   )

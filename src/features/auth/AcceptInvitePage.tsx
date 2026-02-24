@@ -82,7 +82,7 @@ export function AcceptInvitePage() {
   async function acceptInviteWithToken(accessToken: string) {
     setStatus('accepting')
 
-    const { data, error: fnError } = await callEdgeFunction('accept-invite', { token: token! })
+    const { error: fnError } = await callEdgeFunction('accept-invite', { token: token! })
 
     // If callEdgeFunction failed because session was stale, try with the explicit token
     if (fnError) {
