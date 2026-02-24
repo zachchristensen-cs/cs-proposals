@@ -80,11 +80,11 @@ export function TeamPage() {
   }
 
   return (
-    <PageWrapper title="Team" description="Manage your team members and invitations">
-      <div className="mb-6 flex justify-end">
-        <InviteDialog onInviteSent={loadData} />
-      </div>
-
+    <PageWrapper
+      title="Team"
+      description="Manage your team members and invitations"
+      action={<InviteDialog onInviteSent={loadData} />}
+    >
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (

@@ -2,17 +2,25 @@ import { useState, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { SidebarProvider, useSidebar } from './SidebarContext'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
-export function DashboardLayout() {
+function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { collapsed } = useSidebar()
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden w-56 shrink-0 border-r border-border/60 bg-[#faf9f7] lg:block">
+      <aside
+        className={cn(
+          'hidden shrink-0 border-r border-border/60 bg-[#faf9f7] transition-all duration-200 lg:block',
+          collapsed ? 'w-[52px]' : 'w-56',
+        )}
+      >
         <Sidebar />
       </aside>
 
@@ -44,5 +52,15 @@ export function DashboardLayout() {
         </main>
       </div>
     </div>
+  )
+}
+
+export function DashboardLayout() {
+  return (
+    <SidebarProvider>
+      <TooltipProvider>
+        <Layout />
+      </TooltipProvider>
+    </SidebarProvider>
   )
 }

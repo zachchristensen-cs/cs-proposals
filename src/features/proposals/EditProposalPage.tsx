@@ -243,7 +243,7 @@ export function EditProposalPage() {
 
   function handleCopyLink() {
     if (!proposal) return
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proposal-public?slug=${proposal.slug}`
+    const url = `${window.location.origin}/p/${proposal.slug}`
     navigator.clipboard.writeText(url)
     setCopied(true)
     toast.success('Link copied to clipboard')

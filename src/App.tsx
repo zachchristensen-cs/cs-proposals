@@ -12,7 +12,7 @@ import { RequireOrg } from '@/features/auth/RequireOrg'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AdminDashboardPage } from '@/features/dashboard/AdminDashboardPage'
 import { AccountPage } from '@/features/account/AccountPage'
-import { ProposalsPage, NewProposalPage, EditProposalPage } from '@/features/proposals'
+import { ProposalsPage, NewProposalPage, EditProposalPage, PublicProposalPage } from '@/features/proposals'
 import { TeamPage } from '@/features/team'
 import { Toaster } from 'sonner'
 
@@ -35,6 +35,7 @@ const router = createBrowserRouter([
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
       { path: '/reset-password', element: <ResetPasswordPage /> },
       { path: '/accept-invite', element: <AcceptInvitePage /> },
+      { path: '/p/:slug', element: <PublicProposalPage /> },
 
       // Protected routes (with layout)
       {

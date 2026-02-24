@@ -17,6 +17,14 @@ export interface Slide {
   render: () => ReactNode
 }
 
+function SectionDivider({ title }: { title: string }) {
+  return (
+    <section className="flex flex-col items-center justify-center py-16 text-center">
+      <h2 className="font-serif text-3xl text-[#1A1A1A]">{title}</h2>
+    </section>
+  )
+}
+
 function FooterSlide({ contact }: { contact?: ProposalContent['contact'] }) {
   return (
     <section className="flex flex-col items-center text-center py-8">
@@ -43,6 +51,8 @@ export function useSlides(content: ProposalContent): Slide[] {
   return useMemo(() => {
     const slides: Slide[] = []
 
+    // ─── Act 1: Introduction & Context ───────────────────────
+
     // 1. Cover — always present
     slides.push({
       id: 'cover',
@@ -68,9 +78,19 @@ export function useSlides(content: ProposalContent): Slide[] {
       })
     }
 
-    // 4. Phases — one slide per phase
+    // ─── Act 2: Deliverables ─────────────────────────────────
+
+    // 4. "Scope of Work" divider — before phases
     let scopeNum = 1
-    if (content.phases?.length) {
+    const hasPhases = (content.phases?.length ?? 0) > 0
+    if (hasPhases) {
+      slides.push({
+        id: 'scope-divider',
+        label: 'Scope of Work',
+        render: () => <SectionDivider title="Scope of Work" />,
+      })
+
+      // 5. Phases — one slide per phase
       content.phases.forEach((phase, i) => {
         slides.push({
           id: `phase-${i}`,
@@ -87,7 +107,7 @@ export function useSlides(content: ProposalContent): Slide[] {
       scopeNum += content.phases.length
     }
 
-    // 5. Maintenance — optional
+    // 6. Maintenance — optional
     const hasMaintenance = (content.maintenance?.tiers?.length ?? 0) > 0
     if (hasMaintenance) {
       slides.push({
@@ -103,9 +123,19 @@ export function useSlides(content: ProposalContent): Slide[] {
       })
     }
 
-    // 6. Totals
+    // ─── Act 3: Investment ───────────────────────────────────
+
+    // 7. "Investment" divider — before totals
     const hasPayment = (content.payment?.terms?.length ?? 0) > 0
-    if ((content.total ?? 0) > 0) {
+    const hasTotal = (content.total ?? 0) > 0
+    if (hasTotal) {
+      slides.push({
+        id: 'investment-divider',
+        label: 'Investment',
+        render: () => <SectionDivider title="Investment" />,
+      })
+
+      // 8. Totals
       const paymentNote = hasPayment
         ? content.payment!.terms
             .map((t) => t.label)
@@ -126,16 +156,25 @@ export function useSlides(content: ProposalContent): Slide[] {
       })
     }
 
-    // 7. Payment — optional
+    // 9. Payment — optional, now with heading
     if (hasPayment) {
       slides.push({
         id: 'payment',
         label: 'Payment Terms',
-        render: () => <PaymentSection payment={content.payment} />,
+        render: () => (
+          <>
+            <h2 className="mb-6 font-serif text-2xl text-[#1A1A1A]">
+              Payment Terms
+            </h2>
+            <PaymentSection payment={content.payment} />
+          </>
+        ),
       })
     }
 
-    // 8. Team — optional
+    // ─── Act 4: Close ────────────────────────────────────────
+
+    // 10. Team — optional
     if (content.team?.members?.length) {
       slides.push({
         id: 'team',
@@ -144,7 +183,7 @@ export function useSlides(content: ProposalContent): Slide[] {
       })
     }
 
-    // 9. Notes — optional
+    // 11. Notes — optional
     if (content.notes?.items?.length || content.timing_note) {
       slides.push({
         id: 'notes',
@@ -155,7 +194,7 @@ export function useSlides(content: ProposalContent): Slide[] {
       })
     }
 
-    // 10. Thank You / Footer
+    // 12. Thank You / Footer
     slides.push({
       id: 'footer',
       label: 'Thank You',

@@ -45,16 +45,15 @@ export function ProposalsPage() {
     <PageWrapper
       title="Proposals"
       description="Create and manage client proposals"
-    >
-      <div className="mb-6 flex justify-end">
+      action={
         <Button asChild>
           <Link to="/admin/proposals/new">
             <Plus className="mr-2 size-4" />
             New Proposal
           </Link>
         </Button>
-      </div>
-
+      }
+    >
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
