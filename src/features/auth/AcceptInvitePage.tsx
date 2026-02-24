@@ -1,19 +1,34 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, callEdgeFunction } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Loader2 } from 'lucide-react'
+
+type PageStatus = 'loading' | 'needs_signup' | 'accepting' | 'error' | 'success'
+
+interface InviteInfo {
+  email: string
+  organization_name: string
+}
 
 export function AcceptInvitePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
-  const [status, setStatus] = useState<'loading' | 'accepting' | 'error' | 'success'>('loading')
+  const [status, setStatus] = useState<PageStatus>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null)
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const token = searchParams.get('token')
 
+  // Step 1: Validate the token via edge function (no auth required)
   useEffect(() => {
     if (!token) {
       setError('No invite token provided')
@@ -23,66 +38,155 @@ export function AcceptInvitePage() {
 
     if (authLoading) return
 
-    async function processInvite() {
-      // Look up the invite
-      const { data: invite, error: fetchError } = await supabase
-        .from('client_invites')
-        .select('*')
-        .eq('token', token!)
-        .single()
+    async function validateToken() {
+      const { data, error: fnError } = await callEdgeFunction<{
+        email: string
+        organization_name: string
+      }>('validate-invite', { token: token! }, { requireAuth: false })
 
-      if (fetchError || !invite) {
-        setError('Invalid or expired invite link')
+      if (fnError || !data) {
+        setError(fnError ?? 'Invalid or expired invite link')
         setStatus('error')
         return
       }
 
-      if (invite.accepted_at) {
-        setError('This invite has already been accepted')
-        setStatus('error')
-        return
+      setInviteInfo({ email: data.email, organization_name: data.organization_name })
+
+      if (user) {
+        // Already logged in — accept the invite directly
+        await acceptInviteWithFreshToken()
+      } else {
+        // Need to create account
+        setStatus('needs_signup')
       }
+    }
 
-      if (!user) {
-        // Not authenticated – redirect to reset-password flow.
-        // Supabase will have sent the invite email with a magic link
-        // that sets up the auth user. Redirect them to set their password.
-        navigate(`/reset-password`, { replace: true })
-        return
-      }
+    validateToken()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, authLoading])
 
-      // User is authenticated – accept the invite
-      setStatus('accepting')
+  async function acceptInviteWithFreshToken() {
+    setStatus('accepting')
 
-      const { error: insertError } = await supabase
-        .from('user_organizations')
-        .insert({
-          user_id: user.id,
-          organization_id: invite.organization_id,
-        })
+    const { error: fnError } = await callEdgeFunction('accept-invite', { token: token! })
 
-      if (insertError) {
-        // Unique constraint means they're already in the org
-        if (insertError.code === '23505') {
-          // Already a member, just mark the invite accepted
-        } else {
-          setError('Failed to join organization. Please try again.')
+    if (fnError) {
+      setError(fnError)
+      setStatus('error')
+      return
+    }
+
+    setStatus('success')
+  }
+
+  async function acceptInviteWithToken(accessToken: string) {
+    setStatus('accepting')
+
+    const { data, error: fnError } = await callEdgeFunction('accept-invite', { token: token! })
+
+    // If callEdgeFunction failed because session was stale, try with the explicit token
+    if (fnError) {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-invite`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ token }),
+          },
+        )
+
+        const resData = await res.json()
+
+        if (!res.ok || resData?.error) {
+          setError(resData?.error ?? 'Failed to accept invite')
           setStatus('error')
           return
         }
+      } catch {
+        setError(fnError)
+        setStatus('error')
+        return
       }
-
-      // Mark invite as accepted
-      await supabase
-        .from('client_invites')
-        .update({ accepted_at: new Date().toISOString() })
-        .eq('id', invite.id)
-
-      setStatus('success')
     }
 
-    processInvite()
-  }, [token, user, authLoading, navigate])
+    setStatus('success')
+  }
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault()
+    if (!inviteInfo) return
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      // Try to sign up
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: inviteInfo.email,
+        password,
+        options: {
+          data: { full_name: fullName.trim() || undefined },
+        },
+      })
+
+      if (signUpError) {
+        // If user already exists, try signing in instead
+        if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: inviteInfo.email,
+            password,
+          })
+
+          if (signInError) {
+            setError('Account already exists. Please check your password or go to login.')
+            setSubmitting(false)
+            return
+          }
+
+          await acceptInviteWithToken(signInData.session?.access_token ?? '')
+          setSubmitting(false)
+          return
+        }
+
+        setError(signUpError.message)
+        setSubmitting(false)
+        return
+      }
+
+      // If signUp returned a session, use it
+      if (signUpData.session) {
+        await acceptInviteWithToken(signUpData.session.access_token)
+        setSubmitting(false)
+        return
+      }
+
+      // No session from signUp — user may have been pre-created by inviteUserByEmail
+      // Try signing in with the password they just chose
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: inviteInfo.email,
+        password,
+      })
+
+      if (signInError) {
+        setError(signInError.message)
+        setSubmitting(false)
+        return
+      }
+
+      await acceptInviteWithToken(signInData.session?.access_token ?? '')
+      setSubmitting(false)
+    } catch (err) {
+      setError(`Something went wrong: ${err}`)
+      setSubmitting(false)
+    }
+  }
+
+  // ─── Render States ───────────────────────────────────────
 
   if (status === 'loading' || authLoading) {
     return (
@@ -119,19 +223,82 @@ export function AcceptInvitePage() {
     )
   }
 
+  if (status === 'needs_signup') {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <h1 className="font-serif text-2xl tracking-tight">Cambridge Studio</h1>
+            <p className="text-sm text-muted-foreground">
+              Set up your account to join{' '}
+              <span className="font-medium text-foreground">{inviteInfo?.organization_name}</span>
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  value={inviteInfo?.email ?? ''}
+                  disabled
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-name">Full Name</Label>
+                <Input
+                  id="invite-name"
+                  placeholder="Your name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-password">Password</Label>
+                <Input
+                  id="invite-password"
+                  type="password"
+                  placeholder="Choose a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Create Account & Join
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // success
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <h1 className="font-serif text-2xl tracking-tight">Cambridge Studio</h1>
-          <p className="text-sm text-muted-foreground">Invite Accepted</p>
+          <p className="text-sm text-muted-foreground">You're in!</p>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
-            You've been added to the organization.
+            You've been added to <span className="font-medium text-foreground">{inviteInfo?.organization_name}</span>.
           </p>
-          <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+          <Button onClick={() => { window.location.href = '/dashboard' }}>Go to Dashboard</Button>
         </CardContent>
       </Card>
     </div>

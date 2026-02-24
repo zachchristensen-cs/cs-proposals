@@ -28,16 +28,16 @@ Rules for structuring the ticket:
 - If the request mentions multiple changes, break them into clear separate items
 - Reject requests that are extremely vague (e.g., "make it better", "fix stuff") with a helpful reason`
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
+
 Deno.serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -46,14 +46,14 @@ Deno.serve(async (req) => {
     if (!raw_message || typeof raw_message !== "string") {
       return Response.json(
         { success: false, rejection_reason: "Message is required" },
-        { status: 400 },
+        { status: 400, headers: corsHeaders },
       )
     }
 
     if (raw_message.length > 5000) {
       return Response.json(
         { success: false, rejection_reason: "Message exceeds 5000 character limit" },
-        { status: 400 },
+        { status: 400, headers: corsHeaders },
       )
     }
 
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       return Response.json({
         success: false,
         rejection_reason: "Please provide more detail about your request. What specific changes do you need?",
-      })
+      }, { headers: corsHeaders })
     }
 
     // Try Anthropic first, then OpenAI
@@ -79,14 +79,12 @@ Deno.serve(async (req) => {
       result = fallbackProcess(raw_message)
     }
 
-    return Response.json(result, {
-      headers: { "Access-Control-Allow-Origin": "*" },
-    })
+    return Response.json(result, { headers: corsHeaders })
   } catch (error) {
     console.error("process-ticket error:", error)
     return Response.json(
       { success: false, rejection_reason: "An error occurred processing your request" },
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
+      { status: 500, headers: corsHeaders },
     )
   }
 })

@@ -12,10 +12,12 @@ Deno.serve(async (req) => {
     })
   }
 
+  const corsHeaders = { "Access-Control-Allow-Origin": "*" }
+
   try {
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
+      return Response.json({ error: "Unauthorized: no auth header" }, { status: 401, headers: corsHeaders })
     }
 
     const supabaseAdmin = createClient(
@@ -31,13 +33,13 @@ Deno.serve(async (req) => {
 
     const { data: { user } } = await supabaseUser.auth.getUser()
     if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
+      return Response.json({ error: "Unauthorized: invalid token" }, { status: 401, headers: corsHeaders })
     }
 
     const { token } = await req.json()
 
     if (!token) {
-      return Response.json({ error: "Token is required" }, { status: 400 })
+      return Response.json({ error: "Token is required" }, { status: 400, headers: corsHeaders })
     }
 
     // Find the invite
@@ -49,7 +51,44 @@ Deno.serve(async (req) => {
       .single()
 
     if (inviteError || !invite) {
-      return Response.json({ error: "Invalid or expired invitation" }, { status: 404 })
+      return Response.json(
+        { error: `Invalid or expired invitation: ${inviteError?.message ?? "not found"}` },
+        { status: 404, headers: corsHeaders },
+      )
+    }
+
+    // Ensure user record exists first (FK dependency for user_organizations and user_roles)
+    const { error: userError } = await supabaseAdmin
+      .from("users")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email!,
+          full_name: user.user_metadata?.full_name ?? null,
+        },
+        { onConflict: "id" },
+      )
+
+    if (userError) {
+      return Response.json(
+        { error: `Failed to create user record: ${userError.message}` },
+        { status: 500, headers: corsHeaders },
+      )
+    }
+
+    // Set user role
+    const { error: roleError } = await supabaseAdmin
+      .from("user_roles")
+      .upsert(
+        {
+          user_id: user.id,
+          role: invite.role,
+        },
+        { onConflict: "user_id" },
+      )
+
+    if (roleError) {
+      console.warn("Role upsert warning:", roleError.message)
     }
 
     // Add user to org
@@ -65,31 +104,11 @@ Deno.serve(async (req) => {
       )
 
     if (joinError) {
-      return Response.json({ error: `Failed to join organization: ${joinError.message}` }, { status: 500 })
+      return Response.json(
+        { error: `Failed to join organization: ${joinError.message}` },
+        { status: 500, headers: corsHeaders },
+      )
     }
-
-    // Set user role
-    await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        {
-          user_id: user.id,
-          role: invite.role,
-        },
-        { onConflict: "user_id" },
-      )
-
-    // Ensure user record exists
-    await supabaseAdmin
-      .from("users")
-      .upsert(
-        {
-          id: user.id,
-          email: user.email!,
-          full_name: user.user_metadata?.full_name ?? null,
-        },
-        { onConflict: "id" },
-      )
 
     // Mark invite as accepted
     await supabaseAdmin
@@ -97,13 +116,15 @@ Deno.serve(async (req) => {
       .update({ accepted_at: new Date().toISOString() })
       .eq("id", invite.id)
 
-    return Response.json({ success: true, organization_id: invite.organization_id }, {
-      headers: { "Access-Control-Allow-Origin": "*" },
-    })
+    return Response.json(
+      { success: true, organization_id: invite.organization_id },
+      { headers: corsHeaders },
+    )
   } catch (error) {
     console.error("accept-invite error:", error)
+    const message = error instanceof Error ? error.message : String(error)
     return Response.json(
-      { error: "Internal server error" },
+      { error: `Server error: ${message}` },
       { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
     )
   }

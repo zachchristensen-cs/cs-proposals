@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { callEdgeFunction } from '@/lib/supabase'
 import {
   Dialog,
   DialogContent,
@@ -72,22 +72,15 @@ export function InviteClientDialog({
     setLoading(true)
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('invite-client', {
-        body: {
-          email: email.trim(),
-          role,
-          organization_id: orgMode === 'existing' ? selectedOrgId : undefined,
-          new_org_name: orgMode === 'new' ? newOrgName.trim() : undefined,
-        },
+      const { error: fnError } = await callEdgeFunction('invite-client', {
+        email: email.trim(),
+        role,
+        organization_id: orgMode === 'existing' ? selectedOrgId : undefined,
+        new_org_name: orgMode === 'new' ? newOrgName.trim() : undefined,
       })
 
       if (fnError) {
-        setError(fnError.message ?? 'Failed to send invitation')
-        return
-      }
-
-      if (data?.error) {
-        setError(data.error)
+        setError(fnError)
         return
       }
 

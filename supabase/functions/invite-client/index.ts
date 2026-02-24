@@ -12,10 +12,12 @@ Deno.serve(async (req) => {
     })
   }
 
+  const corsHeaders = { "Access-Control-Allow-Origin": "*" }
+
   try {
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
+      return Response.json({ error: "Unauthorized: no auth header" }, { status: 401, headers: corsHeaders })
     }
 
     const supabaseAdmin = createClient(
@@ -32,23 +34,28 @@ Deno.serve(async (req) => {
 
     const { data: { user } } = await supabaseUser.auth.getUser()
     if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 })
+      return Response.json({ error: "Unauthorized: no user" }, { status: 401, headers: corsHeaders })
     }
 
-    const { data: roleData } = await supabaseAdmin
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
       .single()
 
-    if (roleData?.role !== "admin") {
-      return Response.json({ error: "Admin access required" }, { status: 403 })
+    if (roleError) {
+      return Response.json({ error: `Role lookup failed: ${roleError.message}` }, { status: 500, headers: corsHeaders })
     }
 
-    const { email, role, organization_id, new_org_name } = await req.json()
+    if (roleData?.role !== "admin") {
+      return Response.json({ error: "Admin access required" }, { status: 403, headers: corsHeaders })
+    }
+
+    const body = await req.json()
+    const { email, role, organization_id, new_org_name } = body
 
     if (!email || typeof email !== "string") {
-      return Response.json({ error: "Email is required" }, { status: 400 })
+      return Response.json({ error: "Email is required" }, { status: 400, headers: corsHeaders })
     }
 
     let orgId = organization_id
@@ -56,39 +63,50 @@ Deno.serve(async (req) => {
     // Create new org if requested
     if (new_org_name && !organization_id) {
       // Get defaults from admin_settings
-      const { data: settings } = await supabaseAdmin
+      const { data: defaultSettings, error: settingsError } = await supabaseAdmin
         .from("admin_settings")
         .select("default_monthly_ticket_limit, default_sla_days, default_billing_cycle_day")
         .limit(1)
         .single()
 
+      if (settingsError) {
+        console.warn("admin_settings lookup warning:", settingsError.message)
+      }
+
       const { data: newOrg, error: orgError } = await supabaseAdmin
         .from("organizations")
         .insert({
           name: new_org_name.trim(),
-          monthly_ticket_limit: settings?.default_monthly_ticket_limit ?? 10,
-          sla_days: settings?.default_sla_days ?? 3,
-          billing_cycle_day: settings?.default_billing_cycle_day ?? 1,
+          monthly_ticket_limit: defaultSettings?.default_monthly_ticket_limit ?? 10,
+          sla_days: defaultSettings?.default_sla_days ?? 3,
+          billing_cycle_day: defaultSettings?.default_billing_cycle_day ?? 1,
         })
         .select("id")
         .single()
 
       if (orgError || !newOrg) {
-        return Response.json({ error: `Failed to create organization: ${orgError?.message}` }, { status: 500 })
+        return Response.json(
+          { error: `Failed to create organization: ${orgError?.message ?? "unknown"}` },
+          { status: 500, headers: corsHeaders },
+        )
       }
 
       orgId = newOrg.id
 
       // Enable maintenance module by default
-      await supabaseAdmin.from("organization_modules").insert({
+      const { error: moduleError } = await supabaseAdmin.from("organization_modules").insert({
         organization_id: orgId,
         module_slug: "maintenance",
         enabled: true,
       })
+
+      if (moduleError) {
+        console.warn("Module insert warning (non-fatal):", moduleError.message)
+      }
     }
 
     if (!orgId) {
-      return Response.json({ error: "Organization is required" }, { status: 400 })
+      return Response.json({ error: "Organization is required" }, { status: 400, headers: corsHeaders })
     }
 
     // Generate invite token
@@ -104,21 +122,24 @@ Deno.serve(async (req) => {
     })
 
     if (inviteError) {
-      return Response.json({ error: `Failed to create invite: ${inviteError.message}` }, { status: 500 })
+      return Response.json(
+        { error: `Failed to create invite: ${inviteError.message}` },
+        { status: 500, headers: corsHeaders },
+      )
     }
 
     // Get app URL for the invite link
-    const { data: settings } = await supabaseAdmin
+    const { data: appSettings } = await supabaseAdmin
       .from("admin_settings")
       .select("app_url, agency_name")
       .limit(1)
       .single()
 
-    const appUrl = settings?.app_url || Deno.env.get("APP_URL") || "http://localhost:5173"
-    const agencyName = settings?.agency_name || "Cambridge Studio"
+    const appUrl = appSettings?.app_url || Deno.env.get("APP_URL") || "http://localhost:5173"
+    const agencyName = appSettings?.agency_name || "Cambridge Studio"
     const inviteUrl = `${appUrl}/accept-invite?token=${token}`
 
-    // Send invite email via send-notification-email
+    // Send invite email via send-notification-email (best effort)
     try {
       const emailResponse = await fetch(
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`,
@@ -151,18 +172,24 @@ Deno.serve(async (req) => {
       console.error("Email send error:", emailErr)
     }
 
-    // Also create the Supabase auth user with invite
-    await supabaseAdmin.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
-      redirectTo: inviteUrl,
-    })
+    // Also create the Supabase auth user with invite (non-blocking, best effort)
+    try {
+      const { error: authError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email.trim().toLowerCase(), {
+        redirectTo: inviteUrl,
+      })
+      if (authError) {
+        console.warn("Auth invite warning (non-fatal):", authError.message)
+      }
+    } catch (authErr) {
+      console.warn("Auth invite error (non-fatal):", authErr)
+    }
 
-    return Response.json({ success: true, token }, {
-      headers: { "Access-Control-Allow-Origin": "*" },
-    })
+    return Response.json({ success: true, token }, { headers: corsHeaders })
   } catch (error) {
     console.error("invite-client error:", error)
+    const message = error instanceof Error ? error.message : String(error)
     return Response.json(
-      { error: "Internal server error" },
+      { error: `Server error: ${message}` },
       { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
     )
   }

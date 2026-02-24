@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, callEdgeFunction } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOrg } from '@/contexts/OrgContext'
 import { Button } from '@/components/ui/button'
@@ -41,19 +41,25 @@ export function TicketForm({ onSubmitted }: TicketFormProps) {
     setStep('processing')
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        'process-ticket',
-        { body: { raw_message: rawMessage } },
-      )
+      const { data, error: fnError } = await callEdgeFunction<{
+        success: boolean
+        title?: string
+        processed_content?: string
+        rejection_reason?: string
+      }>('process-ticket', { raw_message: rawMessage })
 
-      if (fnError) throw fnError
+      if (fnError) {
+        setError(fnError)
+        setStep('compose')
+        return
+      }
 
-      if (data.success) {
-        setTitle(data.title)
-        setProcessedContent(data.processed_content)
+      if (data?.success) {
+        setTitle(data.title ?? 'Maintenance Request')
+        setProcessedContent(data.processed_content ?? '')
         setStep('preview')
       } else {
-        setError(data.rejection_reason ?? 'Request was too vague. Please add more details.')
+        setError(data?.rejection_reason ?? 'Request was too vague. Please add more details.')
         setStep('compose')
       }
     } catch {
