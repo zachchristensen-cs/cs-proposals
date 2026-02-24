@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Download, User, Play } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Download, User, Play, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Proposal, ProposalContent, ProposalMessage, ProposalAttachment } from '@/types/database'
@@ -39,6 +39,10 @@ export function EditProposalPage() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [copied, setCopied] = useState(false)
   const [presenting, setPresenting] = useState(false)
+  const [chatCollapsed, setChatCollapsed] = useState(false)
+  const [chatWidth, setChatWidth] = useState(40) // percentage
+  const isDragging = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
 
@@ -87,6 +91,31 @@ export function EditProposalPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Resize drag handlers
+  const handleMouseDown = useCallback(() => {
+    isDragging.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((e.clientX - rect.left) / rect.width) * 100
+      setChatWidth(Math.min(60, Math.max(20, pct)))
+    }
+
+    const handleMouseUp = () => {
+      isDragging.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }, [])
 
   // Debounced save
   const saveContent = useCallback(
@@ -349,44 +378,70 @@ export function EditProposalPage() {
       </div>
 
       {/* Split view */}
-      <div className="flex flex-1 overflow-hidden">
+      <div ref={containerRef} className="flex flex-1 overflow-hidden">
         {/* Chat panel */}
-        <div className="flex w-2/5 flex-col border-r border-border/50">
-          <div className="chat-scroll flex-1 overflow-y-auto px-5 py-6">
-            <div className="mx-auto max-w-xl space-y-5">
-              {messages.map((msg, idx) => {
-                const isLastAssistant =
-                  msg.role === 'assistant' &&
-                  idx === messages.length - 1 &&
-                  !isStreaming
-                return (
-                  <ChatMessage
-                    key={msg.id}
-                    role={msg.role}
-                    content={msg.content}
-                    isStreaming={
-                      isStreaming &&
-                      msg.role === 'assistant' &&
-                      msg === messages[messages.length - 1]
-                    }
-                    isGenerating={
-                      isGenerating &&
-                      msg.role === 'assistant' &&
-                      msg === messages[messages.length - 1]
-                    }
-                    isLastAssistant={isLastAssistant}
-                    onOptionClick={(letter) => handleSend(letter)}
-                  />
-                )
-              })}
-              <div ref={messagesEndRef} />
+        {!chatCollapsed && (
+          <div
+            className="flex flex-col border-r border-border/50"
+            style={{ width: `${chatWidth}%` }}
+          >
+            <div className="chat-scroll flex-1 overflow-y-auto px-5 py-6">
+              <div className="mx-auto max-w-xl space-y-5">
+                {messages.map((msg, idx) => {
+                  const isLastAssistant =
+                    msg.role === 'assistant' &&
+                    idx === messages.length - 1 &&
+                    !isStreaming
+                  return (
+                    <ChatMessage
+                      key={msg.id}
+                      role={msg.role}
+                      content={msg.content}
+                      isStreaming={
+                        isStreaming &&
+                        msg.role === 'assistant' &&
+                        msg === messages[messages.length - 1]
+                      }
+                      isGenerating={
+                        isGenerating &&
+                        msg.role === 'assistant' &&
+                        msg === messages[messages.length - 1]
+                      }
+                      isLastAssistant={isLastAssistant}
+                      onOptionClick={(letter) => handleSend(letter)}
+                    />
+                  )
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+            <div className="px-5 py-3">
+              <div className="mx-auto max-w-xl">
+                <ChatInput onSend={handleSend} disabled={isStreaming} proposalId={id} />
+              </div>
             </div>
           </div>
-          <div className="px-5 py-3">
-            <div className="mx-auto max-w-xl">
-              <ChatInput onSend={handleSend} disabled={isStreaming} proposalId={id} />
-            </div>
-          </div>
+        )}
+
+        {/* Resize handle + collapse toggle */}
+        <div className="relative flex shrink-0 items-center">
+          {!chatCollapsed && (
+            <div
+              className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-primary/10 active:bg-primary/20"
+              onMouseDown={handleMouseDown}
+            />
+          )}
+          <button
+            onClick={() => setChatCollapsed(!chatCollapsed)}
+            className="flex h-8 w-6 items-center justify-center text-muted-foreground hover:text-foreground"
+            title={chatCollapsed ? 'Show chat' : 'Hide chat'}
+          >
+            {chatCollapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </button>
         </div>
 
         {/* Preview panel */}

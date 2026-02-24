@@ -9,7 +9,7 @@ interface PageWrapperProps {
 
 export function PageWrapper({ title, description, action, children }: PageWrapperProps) {
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-5xl px-4 pt-10 pb-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl tracking-tight">{title}</h1>
