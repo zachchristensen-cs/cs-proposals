@@ -8,6 +8,7 @@ interface PhasesSectionProps {
   sectionNumber: number
   editable?: boolean
   hideNumber?: boolean
+  hidePricing?: boolean
   onPhasesChange?: (phases: ProposalPhase[]) => void
 }
 
@@ -16,6 +17,7 @@ export function PhasesSection({
   sectionNumber,
   editable,
   hideNumber,
+  hidePricing,
   onPhasesChange,
 }: PhasesSectionProps) {
   function updatePhase(phaseIndex: number, updates: Partial<ProposalPhase>) {
@@ -77,16 +79,18 @@ export function PhasesSection({
                   )}
                 </h2>
               </div>
-              <span className="shrink-0 font-serif text-2xl text-[#1A1A1A]">
-                {editable ? (
-                  <EditablePrice
-                    value={phase.price ?? phase.subtotal}
-                    onChange={(v) => updatePhasePrice(i, v)}
-                  />
-                ) : (
-                  formatCurrency(phase.price ?? phase.subtotal)
-                )}
-              </span>
+              {!hidePricing && (
+                <span className="shrink-0 font-serif text-2xl text-[#1A1A1A]">
+                  {editable ? (
+                    <EditablePrice
+                      value={phase.price ?? phase.subtotal}
+                      onChange={(v) => updatePhasePrice(i, v)}
+                    />
+                  ) : (
+                    formatCurrency(phase.price ?? phase.subtotal)
+                  )}
+                </span>
+              )}
             </div>
 
             {/* Narrative */}
@@ -162,16 +166,18 @@ export function PhasesSection({
                         </p>
                       )}
                     </div>
-                    <span className="shrink-0 text-sm text-[#1A1A1A]">
-                      {editable ? (
-                        <EditablePrice
-                          value={item.price}
-                          onChange={(v) => updateLineItemPrice(i, j, v)}
-                        />
-                      ) : (
-                        formatCurrency(item.price)
-                      )}
-                    </span>
+                    {!hidePricing && (
+                      <span className="shrink-0 text-sm text-[#1A1A1A]">
+                        {editable ? (
+                          <EditablePrice
+                            value={item.price}
+                            onChange={(v) => updateLineItemPrice(i, j, v)}
+                          />
+                        ) : (
+                          formatCurrency(item.price)
+                        )}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

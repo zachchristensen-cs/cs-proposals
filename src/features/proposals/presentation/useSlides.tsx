@@ -90,7 +90,7 @@ export function useSlides(content: ProposalContent): Slide[] {
         render: () => <SectionDivider title="Scope of Work" />,
       })
 
-      // 5. Phases — one slide per phase
+      // 5. Phases — one slide per phase (pricing hidden until Investment)
       content.phases.forEach((phase, i) => {
         slides.push({
           id: `phase-${i}`,
@@ -100,6 +100,7 @@ export function useSlides(content: ProposalContent): Slide[] {
               phases={[phase]}
               sectionNumber={scopeNum + i}
               hideNumber
+              hidePricing
             />
           ),
         })
@@ -118,6 +119,7 @@ export function useSlides(content: ProposalContent): Slide[] {
             maintenance={content.maintenance!}
             sectionNumber={scopeNum++}
             hideNumber
+            hidePricing
           />
         ),
       })

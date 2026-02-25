@@ -4,9 +4,10 @@ interface MaintenanceSectionProps {
   maintenance: NonNullable<ProposalContent['maintenance']>
   sectionNumber: number
   hideNumber?: boolean
+  hidePricing?: boolean
 }
 
-export function MaintenanceSection({ maintenance, sectionNumber, hideNumber }: MaintenanceSectionProps) {
+export function MaintenanceSection({ maintenance, sectionNumber, hideNumber, hidePricing }: MaintenanceSectionProps) {
   // Calculate the price range for the header
   const prices = maintenance.tiers
     .map((t) => t.price)
@@ -26,7 +27,7 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber }: M
             Maintenance
           </h2>
         </div>
-        {prices.length >= 2 && (
+        {!hidePricing && prices.length >= 2 && (
           <span className="shrink-0 font-serif text-2xl text-[#1A1A1A]">
             + {prices[0]} – {prices[prices.length - 1]}
           </span>
@@ -41,7 +42,9 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber }: M
               <span className="text-sm font-medium text-[#1A1A1A]">{tier.name}</span>
               <span className="text-sm text-[#6B6B6B]">{tier.summary}</span>
             </div>
-            <span className="shrink-0 text-sm text-[#1A1A1A]">{tier.price}</span>
+            {!hidePricing && (
+              <span className="shrink-0 text-sm text-[#1A1A1A]">{tier.price}</span>
+            )}
           </div>
         ))}
       </div>
