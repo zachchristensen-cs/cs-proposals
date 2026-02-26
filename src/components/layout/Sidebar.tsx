@@ -2,6 +2,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   FileText,
+  ScrollText,
+  CreditCard,
   Users,
   Settings,
   LogOut,
@@ -84,7 +86,7 @@ function SidebarLink({
 }
 
 export function Sidebar({ onNavigate }: SidebarProps) {
-  const { user, isAgencyStaff, signOut } = useAuth()
+  const { user, isAgencyStaff, isWorkspaceAdmin, signOut } = useAuth()
   const { collapsed, toggle } = useSidebar()
   const navigate = useNavigate()
 
@@ -180,6 +182,33 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               onNavigate={onNavigate}
             >
               Proposals
+            </SidebarLink>
+          </>
+        )}
+
+        {isWorkspaceAdmin && (
+          <>
+            {!isCollapsed && (
+              <p className="mb-1 mt-5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">
+                Contracts
+              </p>
+            )}
+            {isCollapsed && <div className="my-2 border-t border-border/40" />}
+            <SidebarLink
+              to="/admin/settings/templates"
+              icon={ScrollText}
+              collapsed={isCollapsed}
+              onNavigate={onNavigate}
+            >
+              Templates
+            </SidebarLink>
+            <SidebarLink
+              to="/admin/settings/service-plans"
+              icon={CreditCard}
+              collapsed={isCollapsed}
+              onNavigate={onNavigate}
+            >
+              Service Plans
             </SidebarLink>
           </>
         )}

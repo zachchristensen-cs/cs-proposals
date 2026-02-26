@@ -11,6 +11,10 @@ import { AdminDashboardPage } from '@/features/dashboard/AdminDashboardPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { ProposalsPage, NewProposalPage, EditProposalPage, PublicProposalPage } from '@/features/proposals'
 import { TeamPage } from '@/features/team'
+import ContractTemplatesPage from '@/features/contracts/templates/ContractTemplatesPage'
+import TemplateEditorPage from '@/features/contracts/templates/TemplateEditorPage'
+import ServicePlansPage from '@/features/contracts/plans/ServicePlansPage'
+import { RequireWorkspaceAdmin } from '@/features/auth/RequireWorkspaceAdmin'
 import { Toaster } from 'sonner'
 
 function Providers() {
@@ -47,6 +51,15 @@ const router = createBrowserRouter([
                   { path: '/admin/proposals/new', element: <NewProposalPage /> },
                   { path: '/admin/proposals/:id', element: <EditProposalPage /> },
                   { path: '/admin/team', element: <TeamPage /> },
+                ],
+              },
+
+              {
+                element: <RequireWorkspaceAdmin />,
+                children: [
+                  { path: '/admin/settings/templates', element: <ContractTemplatesPage /> },
+                  { path: '/admin/settings/templates/:id', element: <TemplateEditorPage /> },
+                  { path: '/admin/settings/service-plans', element: <ServicePlansPage /> },
                 ],
               },
 
