@@ -252,15 +252,9 @@
     break-inside: avoid;
   }
 
-  /* Keep section headers with their content */
-  #proposal-content section > div:first-child {
-    break-inside: avoid;
-    break-after: avoid;
-  }
-
   #proposal-content .proposal-footer {
     break-inside: avoid;
-    break-before: avoid;
+    margin-top: 2rem !important;
   }
 
   /* Hide edit UI in print */

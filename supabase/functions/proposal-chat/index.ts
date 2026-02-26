@@ -198,7 +198,8 @@ function buildSystemPrompt(options: {
   currentContent?: Record<string, unknown>
   tier?: number
 }): string {
-  let prompt = PRODUCT_SPEC + "\n\n"
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  let prompt = PRODUCT_SPEC + `\n\nToday's date is ${today}. Always use this as the cover date when generating a new proposal.\n\n`
 
   if (options.currentContent) {
     prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change.
