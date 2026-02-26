@@ -53,7 +53,7 @@ export function TeamPage() {
     const [{ data: staffData }, { data: inviteData }] = await Promise.all([
       supabase.rpc('get_agency_staff'),
       supabase
-        .from('client_invites')
+        .from('team_invites')
         .select('id, email, role, created_at')
         .is('accepted_at', null)
         .in('role', ['admin', 'member'])

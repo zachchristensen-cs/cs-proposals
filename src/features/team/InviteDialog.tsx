@@ -37,7 +37,7 @@ export function InviteDialog({ onInviteSent }: InviteDialogProps) {
     if (!email.trim()) return
 
     setSending(true)
-    const { error } = await callEdgeFunction('invite-client', {
+    const { error } = await callEdgeFunction('invite-team', {
       email: email.trim().toLowerCase(),
       role,
     })

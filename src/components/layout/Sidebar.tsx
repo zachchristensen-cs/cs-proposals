@@ -13,7 +13,6 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSidebar } from './SidebarContext'
-import { OrgSwitcher } from './OrgSwitcher'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,7 +84,7 @@ function SidebarLink({
 }
 
 export function Sidebar({ onNavigate }: SidebarProps) {
-  const { user, role, isAgencyStaff, signOut } = useAuth()
+  const { user, isAgencyStaff, signOut } = useAuth()
   const { collapsed, toggle } = useSidebar()
   const navigate = useNavigate()
 
@@ -164,17 +163,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           isCollapsed && 'px-1.5',
         )}
       >
-        {role === 'client' && (
-          <SidebarLink
-            to="/dashboard"
-            icon={LayoutDashboard}
-            collapsed={isCollapsed}
-            onNavigate={onNavigate}
-          >
-            Dashboard
-          </SidebarLink>
-        )}
-
         {isAgencyStaff && (
           <>
             <SidebarLink
@@ -199,8 +187,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Bottom section */}
       <div className={cn('px-3 pb-3', isCollapsed && 'px-1.5')}>
-        {!isCollapsed && <OrgSwitcher />}
-
         {/* User email */}
         {!isCollapsed && (
           <div className="mt-2 border-t border-border/60 px-2 pt-2">

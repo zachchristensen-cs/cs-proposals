@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     // Find the invite
     const { data: invite, error: inviteError } = await supabaseAdmin
-      .from("client_invites")
+      .from("team_invites")
       .select("*")
       .eq("token", token)
       .is("accepted_at", null)
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Ensure user record exists first (FK dependency for user_organizations and user_roles)
+    // Upsert user record with role
     const { error: userError } = await supabaseAdmin
       .from("users")
       .upsert(
@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
           id: user.id,
           email: user.email!,
           full_name: user.user_metadata?.full_name ?? null,
+          role: invite.role,
         },
         { onConflict: "id" },
       )
@@ -76,50 +77,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Set user role
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        {
-          user_id: user.id,
-          role: invite.role,
-        },
-        { onConflict: "user_id" },
-      )
-
-    if (roleError) {
-      console.warn("Role upsert warning:", roleError.message)
-    }
-
-    // Add user to org (only if invite has an organization)
-    if (invite.organization_id) {
-      const { error: joinError } = await supabaseAdmin
-        .from("user_organizations")
-        .upsert(
-          {
-            user_id: user.id,
-            organization_id: invite.organization_id,
-            is_owner: false,
-          },
-          { onConflict: "user_id,organization_id" },
-        )
-
-      if (joinError) {
-        return Response.json(
-          { error: `Failed to join organization: ${joinError.message}` },
-          { status: 500, headers: corsHeaders },
-        )
-      }
-    }
-
     // Mark invite as accepted
     await supabaseAdmin
-      .from("client_invites")
+      .from("team_invites")
       .update({ accepted_at: new Date().toISOString() })
       .eq("id", invite.id)
 
     return Response.json(
-      { success: true, organization_id: invite.organization_id },
+      { success: true },
       { headers: corsHeaders },
     )
   } catch (error) {

@@ -1,4 +1,6 @@
-import type { ModuleSlug, UserRole } from './modules'
+// ─── Auth ────────────────────────────────────────────────
+
+export type UserRole = 'admin' | 'member'
 
 // ─── Core Tables ─────────────────────────────────────────────
 
@@ -8,51 +10,13 @@ export interface User {
   full_name: string | null
   avatar_url: string | null
   cal_com_link: string | null
-  created_at: string
-}
-
-export interface UserRole_Row {
-  id: string
-  user_id: string
   role: UserRole
-}
-
-export interface Organization {
-  id: string
-  name: string
-  monthly_ticket_limit: number
-  sla_days: number
-  billing_cycle_day: number
-  tickets_used: number
   created_at: string
 }
 
-export interface UserOrganization {
-  id: string
-  user_id: string
-  organization_id: string
-  is_owner: boolean
-  joined_at: string
-}
-
-export interface Module {
-  id: string
-  slug: ModuleSlug
-  name: string
-  enabled: boolean
-}
-
-export interface OrganizationModule {
-  organization_id: string
-  module_slug: string
-  enabled: boolean
-  config: Record<string, unknown>
-}
-
-export interface ClientInvite {
+export interface TeamInvite {
   id: string
   email: string
-  organization_id: string
   role: UserRole
   invited_by: string
   token: string
@@ -62,22 +26,11 @@ export interface ClientInvite {
 
 export interface AdminSettings {
   id: string
-  notion_database_id: string | null
-  notion_api_key: string | null
-  notion_auto_sync: boolean
   admin_notification_emails: string[]
   client_emails_enabled: boolean
   admin_emails_enabled: boolean
   app_url: string
   agency_name: string
-  default_monthly_ticket_limit: number
-  default_sla_days: number
-  default_billing_cycle_day: number
-  slack_webhook_url: string | null
-  boldsign_api_key: string | null
-  kanban_columns: string[]
-  cal_com_base_url: string | null
-  notion_clients_tracker_db_id: string | null
 }
 
 // ─── Proposals ──────────────────────────────────────────────

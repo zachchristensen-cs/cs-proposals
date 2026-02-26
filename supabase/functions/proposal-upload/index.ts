@@ -42,9 +42,9 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
 
     if (!roleData || !["admin", "member"].includes(roleData.role)) {

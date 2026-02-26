@@ -1,13 +1,7 @@
-export type { ModuleSlug, UserRole } from './modules'
-
 export type {
+  UserRole,
   User,
-  UserRole_Row,
-  Organization,
-  UserOrganization,
-  Module,
-  OrganizationModule,
-  ClientInvite,
+  TeamInvite,
   AdminSettings,
   ProposalStatus,
   ProposalTier,

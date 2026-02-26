@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
     }
 
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
 
     if (!roleData?.role || !["admin", "member"].includes(roleData.role)) {
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     const { error } = await supabaseAdmin
-      .from("client_invites")
+      .from("team_invites")
       .delete()
       .eq("id", invite_id)
 

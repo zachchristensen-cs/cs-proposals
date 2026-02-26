@@ -1,6 +1,5 @@
 import { RouterProvider, createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { OrgProvider } from '@/contexts/OrgContext'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
@@ -8,8 +7,6 @@ import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { AcceptInvitePage } from '@/features/auth/AcceptInvitePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RequireRole } from '@/features/auth/RequireRole'
-import { RequireOrg } from '@/features/auth/RequireOrg'
-import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { AdminDashboardPage } from '@/features/dashboard/AdminDashboardPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { ProposalsPage, NewProposalPage, EditProposalPage, PublicProposalPage } from '@/features/proposals'
@@ -19,9 +16,7 @@ import { Toaster } from 'sonner'
 function Providers() {
   return (
     <AuthProvider>
-      <OrgProvider>
-        <Outlet />
-      </OrgProvider>
+      <Outlet />
     </AuthProvider>
   )
 }
@@ -44,20 +39,6 @@ const router = createBrowserRouter([
           {
             element: <DashboardLayout />,
             children: [
-              // Client routes
-              {
-                element: <RequireRole roles={['client']} />,
-                children: [
-                  {
-                    element: <RequireOrg />,
-                    children: [
-                      { path: '/dashboard', element: <DashboardPage /> },
-                    ],
-                  },
-                ],
-              },
-
-              // Admin routes (admin + member)
               {
                 element: <RequireRole roles={['admin', 'member']} />,
                 children: [
@@ -69,7 +50,6 @@ const router = createBrowserRouter([
                 ],
               },
 
-              // Shared routes (any authenticated user)
               { path: '/account', element: <AccountPage /> },
             ],
           },

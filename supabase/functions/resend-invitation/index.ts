@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
     }
 
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
 
     if (!roleData?.role || !["admin", "member"].includes(roleData.role)) {
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: invite, error } = await supabaseAdmin
-      .from("client_invites")
+      .from("team_invites")
       .select("*")
       .eq("id", invite_id)
       .single()
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
               <h2>Invitation Reminder</h2>
-              <p>This is a reminder that you've been invited to ${agencyName}'s client portal.</p>
+              <p>This is a reminder that you've been invited to join ${agencyName}.</p>
               <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">Accept Invitation</a></p>
               <p style="color: #666; font-size: 14px;">${inviteUrl}</p>
             </div>

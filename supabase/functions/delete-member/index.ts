@@ -37,9 +37,9 @@ Deno.serve(async (req) => {
 
     // Check that the requesting user is admin or member
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
 
     if (!roleData?.role || !["admin", "member"].includes(roleData.role)) {
@@ -57,18 +57,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: "You cannot remove yourself" }, { status: 400, headers: corsHeaders })
     }
 
-    // Verify the target is an admin or member (not a client)
+    // Verify the target is a team member
     const { data: targetRole } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", member_id)
+      .eq("id", member_id)
       .single()
 
     if (!targetRole?.role || !["admin", "member"].includes(targetRole.role)) {
       return Response.json({ error: "User is not a team member" }, { status: 400, headers: corsHeaders })
     }
 
-    // Delete the user from auth (cascades to users, user_roles, etc.)
+    // Delete the user from auth (cascades to users table)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(member_id)
 
     if (error) {

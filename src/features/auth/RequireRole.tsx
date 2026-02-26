@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import type { UserRole } from '@/types/modules'
+import type { UserRole } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 
 export function RequireRole({ roles }: { roles: UserRole[] }) {
@@ -14,7 +14,7 @@ export function RequireRole({ roles }: { roles: UserRole[] }) {
   }
 
   if (!role || !roles.includes(role)) {
-    const redirect = role === 'admin' || role === 'member' ? '/admin' : '/dashboard'
+    const redirect = '/admin'
     return <Navigate to={redirect} replace />
   }
 

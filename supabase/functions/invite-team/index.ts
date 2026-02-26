@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
     }
 
     const { data: roleData, error: roleError } = await supabaseAdmin
-      .from("user_roles")
+      .from("users")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
 
     if (roleError) {
@@ -52,73 +52,24 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { email, role, organization_id, new_org_name } = body
+    const { email, role } = body
 
     if (!email || typeof email !== "string") {
       return Response.json({ error: "Email is required" }, { status: 400, headers: corsHeaders })
     }
 
-    let orgId = organization_id
+    const inviteRole = role || "member"
 
-    // Create new org if requested
-    if (new_org_name && !organization_id) {
-      // Get defaults from admin_settings
-      const { data: defaultSettings, error: settingsError } = await supabaseAdmin
-        .from("admin_settings")
-        .select("default_monthly_ticket_limit, default_sla_days, default_billing_cycle_day")
-        .limit(1)
-        .single()
-
-      if (settingsError) {
-        console.warn("admin_settings lookup warning:", settingsError.message)
-      }
-
-      const { data: newOrg, error: orgError } = await supabaseAdmin
-        .from("organizations")
-        .insert({
-          name: new_org_name.trim(),
-          monthly_ticket_limit: defaultSettings?.default_monthly_ticket_limit ?? 10,
-          sla_days: defaultSettings?.default_sla_days ?? 3,
-          billing_cycle_day: defaultSettings?.default_billing_cycle_day ?? 1,
-        })
-        .select("id")
-        .single()
-
-      if (orgError || !newOrg) {
-        return Response.json(
-          { error: `Failed to create organization: ${orgError?.message ?? "unknown"}` },
-          { status: 500, headers: corsHeaders },
-        )
-      }
-
-      orgId = newOrg.id
-
-      // Enable maintenance module by default
-      const { error: moduleError } = await supabaseAdmin.from("organization_modules").insert({
-        organization_id: orgId,
-        module_slug: "maintenance",
-        enabled: true,
-      })
-
-      if (moduleError) {
-        console.warn("Module insert warning (non-fatal):", moduleError.message)
-      }
-    }
-
-    const inviteRole = role || "client"
-
-    // Only require organization for client invites
-    if (!orgId && inviteRole === "client") {
-      return Response.json({ error: "Organization is required for client invites" }, { status: 400, headers: corsHeaders })
+    if (!["admin", "member"].includes(inviteRole)) {
+      return Response.json({ error: "Role must be admin or member" }, { status: 400, headers: corsHeaders })
     }
 
     // Generate invite token
     const token = crypto.randomUUID()
 
     // Create invite record
-    const { error: inviteError } = await supabaseAdmin.from("client_invites").insert({
+    const { error: inviteError } = await supabaseAdmin.from("team_invites").insert({
       email: email.trim().toLowerCase(),
-      organization_id: orgId || null,
       role: inviteRole,
       invited_by: user.id,
       token,
@@ -158,7 +109,7 @@ Deno.serve(async (req) => {
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>You've been invited to ${agencyName}</h2>
-                <p>You've been invited to join ${agencyName}'s client portal. Click the link below to set up your account:</p>
+                <p>You've been invited to join ${agencyName}. Click the link below to set up your account:</p>
                 <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">Accept Invitation</a></p>
                 <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this URL into your browser:</p>
                 <p style="color: #666; font-size: 14px; word-break: break-all;">${inviteUrl}</p>
@@ -189,7 +140,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ success: true, token }, { headers: corsHeaders })
   } catch (error) {
-    console.error("invite-client error:", error)
+    console.error("invite-team error:", error)
     const message = error instanceof Error ? error.message : String(error)
     return Response.json(
       { error: `Server error: ${message}` },

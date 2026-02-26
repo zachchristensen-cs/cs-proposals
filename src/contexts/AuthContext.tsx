@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import type { UserRole } from '@/types/modules'
+import type { UserRole } from '@/types/database'
 import { supabase } from '@/lib/supabase'
 
 interface AuthContextValue {
@@ -25,9 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchRole = useCallback(async (userId: string) => {
     const { data } = await supabase
-      .from('user_roles')
+      .from('users')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single()
 
     if (data) {

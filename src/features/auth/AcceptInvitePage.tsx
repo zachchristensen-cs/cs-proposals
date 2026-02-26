@@ -12,7 +12,6 @@ type PageStatus = 'loading' | 'needs_signup' | 'accepting' | 'error' | 'success'
 
 interface InviteInfo {
   email: string
-  organization_name: string
 }
 
 export function AcceptInvitePage() {
@@ -41,7 +40,6 @@ export function AcceptInvitePage() {
     async function validateToken() {
       const { data, error: fnError } = await callEdgeFunction<{
         email: string
-        organization_name: string
       }>('validate-invite', { token: token! }, { requireAuth: false })
 
       if (fnError || !data) {
@@ -50,7 +48,7 @@ export function AcceptInvitePage() {
         return
       }
 
-      setInviteInfo({ email: data.email, organization_name: data.organization_name })
+      setInviteInfo({ email: data.email })
 
       if (user) {
         // Already logged in — accept the invite directly
@@ -199,7 +197,7 @@ export function AcceptInvitePage() {
   if (status === 'accepting') {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Joining organization...</div>
+        <div className="text-muted-foreground">Setting up your account...</div>
       </div>
     )
   }
@@ -230,8 +228,7 @@ export function AcceptInvitePage() {
           <CardHeader className="text-center">
             <h1 className="font-serif text-2xl tracking-tight">Cambridge Studio</h1>
             <p className="text-sm text-muted-foreground">
-              Set up your account to join{' '}
-              <span className="font-medium text-foreground">{inviteInfo?.organization_name}</span>
+              Set up your account to get started
             </p>
           </CardHeader>
           <CardContent>
@@ -296,9 +293,9 @@ export function AcceptInvitePage() {
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
-            You've been added to <span className="font-medium text-foreground">{inviteInfo?.organization_name}</span>.
+            Your account is ready.
           </p>
-          <Button onClick={() => { window.location.href = '/dashboard' }}>Go to Dashboard</Button>
+          <Button onClick={() => { window.location.href = '/admin' }}>Go to Dashboard</Button>
         </CardContent>
       </Card>
     </div>

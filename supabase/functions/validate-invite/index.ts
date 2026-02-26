@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
 
     // Look up the invite by token
     const { data: invite, error: inviteError } = await supabaseAdmin
-      .from("client_invites")
-      .select("id, email, organization_id, accepted_at")
+      .from("team_invites")
+      .select("id, email, accepted_at")
       .eq("token", token)
       .single()
 
@@ -41,17 +41,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: "This invite has already been accepted" }, { status: 400, headers: corsHeaders })
     }
 
-    // Get organization name
-    const { data: org } = await supabaseAdmin
-      .from("organizations")
-      .select("name")
-      .eq("id", invite.organization_id)
-      .single()
-
     return Response.json({
       valid: true,
       email: invite.email,
-      organization_name: org?.name ?? "your organization",
     }, { headers: corsHeaders })
   } catch (error) {
     console.error("validate-invite error:", error)
