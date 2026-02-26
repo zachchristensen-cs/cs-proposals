@@ -49,6 +49,21 @@ export function CoverSection({ cover, editable, onCoverChange }: CoverSectionPro
         </div>
       </div>
 
+      {/* Description */}
+      {cover.description && (
+        <p className="mt-4 text-sm leading-relaxed text-[#4A4A4A]">
+          {editable ? (
+            <EditableText
+              value={cover.description}
+              onChange={(v) => update('description', v)}
+              multiline
+            />
+          ) : (
+            cover.description
+          )}
+        </p>
+      )}
+
       {/* Divider */}
       <div className="mt-8 border-t border-[#D4D0C8]" />
     </section>

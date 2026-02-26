@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Download, User, Play, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Download, User, Play, MessageSquare, Undo2, Redo2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Proposal, ProposalContent, ProposalMessage, ProposalAttachment } from '@/types/database'
@@ -10,12 +10,75 @@ import { ProposalRenderer } from './renderer'
 import { ChatMessage } from './components/ChatMessage'
 import { ChatInput } from './components/ChatInput'
 import { SaveIndicator } from './components/SaveIndicator'
+import { VersionHistory } from './components/VersionHistory'
 import { parseProposalResponse, stripProposalTags } from './lib/parseProposalUpdate'
 import { recalculateTotals } from './lib/recalculateTotals'
+import { useUndoStack } from './hooks/useUndoStack'
 import { streamEdgeFunction } from '@/lib/streaming'
 import { downloadProposalPdf } from './lib/downloadPdf'
 import { PresentationMode } from './presentation'
 import { toast } from 'sonner'
+
+function InlineRename({
+  value,
+  placeholder,
+  onSave,
+}: {
+  value: string
+  placeholder: string
+  onSave: (name: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setDraft(value)
+  }, [value])
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [editing])
+
+  function save() {
+    setEditing(false)
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== value) {
+      onSave(trimmed)
+    } else {
+      setDraft(value)
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); save() }
+          if (e.key === 'Escape') { setEditing(false); setDraft(value) }
+        }}
+        className="flex-1 truncate rounded border border-ring bg-white px-2 py-0.5 text-sm font-medium outline-none"
+      />
+    )
+  }
+
+  return (
+    <h1
+      onClick={() => setEditing(true)}
+      className="flex-1 cursor-pointer truncate rounded px-2 py-0.5 text-sm font-medium transition-colors hover:bg-muted"
+      title="Click to rename"
+    >
+      {value || placeholder}
+    </h1>
+  )
+}
 
 interface TeamMember {
   id: string
@@ -45,6 +108,8 @@ export function EditProposalPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
+  const contentRef = useRef<ProposalContent | null>(null)
+  const { pushUndo, popUndo, popRedo, canUndo, canRedo } = useUndoStack()
 
   // Load proposal, messages, and team members
   useEffect(() => {
@@ -123,6 +188,11 @@ export function EditProposalPage() {
     window.addEventListener('mouseup', handleMouseUp)
   }, [])
 
+  // Keep contentRef in sync for keyboard handler
+  useEffect(() => {
+    contentRef.current = content
+  }, [content])
+
   // Debounced save
   const saveContent = useCallback(
     (updatedContent: ProposalContent) => {
@@ -131,11 +201,12 @@ export function EditProposalPage() {
 
       setSaveStatus('saving')
       saveTimeoutRef.current = setTimeout(async () => {
+        const clientName = updatedContent.cover?.client_name ?? proposal?.client_name
         const { error } = await supabase
           .from('proposals')
           .update({
             content: updatedContent as unknown,
-            client_name: updatedContent.cover?.client_name ?? proposal?.client_name,
+            client_name: clientName,
           })
           .eq('id', id)
 
@@ -145,17 +216,66 @@ export function EditProposalPage() {
         } else {
           setSaveStatus('saved')
           setTimeout(() => setSaveStatus('idle'), 2000)
+
+          // Fire-and-forget version snapshot
+          if (user) {
+            supabase
+              .from('proposal_versions')
+              .insert({
+                proposal_id: id,
+                content: updatedContent as unknown,
+                client_name: clientName,
+                created_by: user.id,
+              })
+              .then(() => {})
+          }
         }
       }, 1000)
     },
-    [id, proposal?.client_name],
+    [id, proposal?.client_name, user],
   )
 
   function handleContentChange(updatedContent: ProposalContent) {
+    // Push current state to undo stack before applying changes
+    if (content) pushUndo(content)
     const recalculated = recalculateTotals(updatedContent)
     setContent(recalculated)
     saveContent(recalculated)
   }
+
+  function handleUndo() {
+    if (!contentRef.current) return
+    const previous = popUndo(contentRef.current)
+    if (previous) {
+      setContent(previous)
+      saveContent(previous)
+    }
+  }
+
+  function handleRedo() {
+    if (!contentRef.current) return
+    const next = popRedo(contentRef.current)
+    if (next) {
+      setContent(next)
+      saveContent(next)
+    }
+  }
+
+  // Keyboard shortcuts: Cmd+Z / Cmd+Shift+Z
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSend(text: string, attachments?: ProposalAttachment[]) {
     if ((!text.trim() && !attachments?.length) || isStreaming || !id || !content) return
@@ -344,10 +464,48 @@ export function EditProposalPage() {
             <ArrowLeft className="size-4" />
           </Link>
         </Button>
-        <h1 className="flex-1 truncate text-sm font-medium">
-          {proposal.client_name || 'Untitled'}
-        </h1>
+        <InlineRename
+          value={proposal.client_name || ''}
+          placeholder="Untitled"
+          onSave={async (name) => {
+            const { error } = await supabase
+              .from('proposals')
+              .update({ client_name: name })
+              .eq('id', id!)
+            if (error) {
+              toast.error('Failed to rename')
+              return
+            }
+            setProposal((prev) => prev ? { ...prev, client_name: name } : prev)
+          }}
+        />
         <SaveIndicator status={saveStatus} />
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={handleUndo}
+            disabled={!canUndo()}
+            title="Undo (Cmd+Z)"
+          >
+            <Undo2 className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={handleRedo}
+            disabled={!canRedo()}
+            title="Redo (Cmd+Shift+Z)"
+          >
+            <Redo2 className="size-3.5" />
+          </Button>
+        </div>
+        <VersionHistory
+          proposalId={id!}
+          onRestore={(restored) => handleContentChange(restored)}
+        />
         {teamMembers.length > 0 && (
           <Select
             value={content.contact?.email || user?.email || ''}
@@ -403,7 +561,7 @@ export function EditProposalPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => downloadProposalPdf()}
+          onClick={() => downloadProposalPdf(content.cover?.client_name || proposal.client_name || undefined)}
         >
           <Download className="mr-1.5 size-3.5" />
           PDF

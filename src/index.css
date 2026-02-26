@@ -164,69 +164,109 @@
 .chat-scroll::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.08); border-radius: 3px; }
 .chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.14); }
 
-/* Print styles — used by "Download PDF" to isolate proposal content */
+/*
+ * Print styles — used by "Download PDF" to isolate proposal content.
+ *
+ * Strategy: use :has(#proposal-content) to identify ancestor containers,
+ * then display:none everything that isn't an ancestor or descendant of the
+ * proposal. This removes chat panel, toolbar, sidebar from layout entirely
+ * (visibility:hidden only hides visually, elements still take up space).
+ */
 @media print {
-  /* Hide everything except the proposal */
+  /* Hide anything outside #root (Vite overlays, etc.) */
   body > *:not(#root) {
     display: none !important;
   }
 
-  /* Hide all app chrome — sidebar, top bar, chat panel, etc. */
-  #root * {
-    visibility: hidden;
-  }
-
-  #proposal-content,
-  #proposal-content * {
-    visibility: visible;
+  /* Reset document root to simple block flow */
+  html, body, #root {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /*
-   * Break all ancestor containers free from flex/grid height constraints
-   * and overflow clipping so content can flow across multiple print pages.
+   * Hide every element inside #root that is NOT:
+   *   - an ancestor of #proposal-content  (:has(#proposal-content))
+   *   - #proposal-content itself
+   *   - a descendant of #proposal-content
+   * This removes toolbar, chat panel, drag handle, sidebar from layout.
    */
-  html, body, #root {
-    height: auto !important;
-    overflow: visible !important;
+  #root *:not(:has(#proposal-content)):not(#proposal-content):not(#proposal-content *) {
+    display: none !important;
   }
 
-  #root > *,
-  #root > * > *,
-  #root > * > * > *,
-  #root > * > * > * > * {
+  /*
+   * Flatten ancestor containers into simple blocks so the proposal
+   * flows naturally across print pages — no flex, no overflow clipping.
+   */
+  #root :has(#proposal-content) {
+    display: block !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
-    flex-shrink: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
   }
 
-  /* Pull proposal out of any flex/grid layout and make it fill the page */
+  /* Proposal container itself */
   #proposal-content {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Remove max-width so it fills the print area */
+  /* Remove inner max-width — @page margin handles spacing */
   #proposal-content > div {
     max-width: none;
     padding: 0;
   }
 
-  /* Ensure images print */
+  /* Ensure images print with correct colors */
   #proposal-content img {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Avoid awkward page breaks in the middle of sections */
-  #proposal-content section,
-  #proposal-content .phase-section {
+  /* Keep small critical blocks together — let large sections split naturally */
+  #proposal-content .totals-section {
     break-inside: avoid;
+  }
+
+  /* Prevent team cards, persona cards, line items, etc. from splitting */
+  #proposal-content .group\/item {
+    break-inside: avoid;
+  }
+
+  /* Keep section headers with their content */
+  #proposal-content section > div:first-child {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  #proposal-content .proposal-footer {
+    break-inside: avoid;
+    break-before: avoid;
+  }
+
+  /* Hide edit UI in print */
+  .remove-btn,
+  .add-btn {
+    display: none !important;
   }
 
   /* Page setup — margin handles spacing on all pages uniformly */

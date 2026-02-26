@@ -8,6 +8,7 @@ import { PaymentSection } from './PaymentSection'
 import { MaintenanceSection } from './MaintenanceSection'
 import { TeamSection } from './TeamSection'
 import { NotesSection } from './NotesSection'
+import { RemoveButton } from '../components/RemoveButton'
 import cambridgeLogo from '@/assets/CambridgeStudio Logo.svg'
 
 interface ProposalRendererProps {
@@ -36,6 +37,17 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
   // Calculate starting scope number — phases come first in numbering
   const phaseScopeStart = scopeNum + 1
 
+  function removeSection(key: 'opportunity' | 'personas' | 'maintenance' | 'team' | 'notes' | 'timing_note') {
+    if (!onContentChange) return
+    const updated = { ...content }
+    if (key === 'timing_note') {
+      delete updated.timing_note
+    } else {
+      delete updated[key]
+    }
+    onContentChange(updated)
+  }
+
   return (
     <div id="proposal-content" className="min-h-screen bg-[#f5f2ed]">
       <div className="mx-auto max-w-3xl px-6 py-10 sm:px-10 sm:py-16">
@@ -50,19 +62,41 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         />
 
         {hasOpportunity && (
-          <OpportunitySection
-            opportunity={content.opportunity!}
-            editable={editable}
-            onOpportunityChange={
-              onContentChange
-                ? (opportunity) => onContentChange({ ...content, opportunity })
-                : undefined
-            }
-          />
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('opportunity')} title="Remove Opportunity" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <OpportunitySection
+              opportunity={content.opportunity!}
+              editable={editable}
+              onOpportunityChange={
+                onContentChange
+                  ? (opportunity) => onContentChange({ ...content, opportunity })
+                  : undefined
+              }
+            />
+          </div>
         )}
 
         {hasPersonas && (
-          <PersonasSection personas={content.personas!} />
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('personas')} title="Remove Personas" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <PersonasSection
+              personas={content.personas!}
+              editable={editable}
+              onPersonasChange={
+                onContentChange
+                  ? (personas) => onContentChange({ ...content, personas })
+                  : undefined
+              }
+            />
+          </div>
         )}
 
         {hasPhases && (
@@ -82,10 +116,23 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         )}
 
         {hasMaintenance && (
-          <MaintenanceSection
-            maintenance={content.maintenance!}
-            sectionNumber={++scopeNum}
-          />
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('maintenance')} title="Remove Maintenance" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <MaintenanceSection
+              maintenance={content.maintenance!}
+              sectionNumber={++scopeNum}
+              editable={editable}
+              onMaintenanceChange={
+                onContentChange
+                  ? (maintenance) => onContentChange({ ...content, maintenance })
+                  : undefined
+              }
+            />
+          </div>
         )}
 
         {(content.total ?? 0) > 0 && (
@@ -109,18 +156,51 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         )}
 
         {hasTeam && (
-          <TeamSection team={content.team!} />
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('team')} title="Remove Team" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <TeamSection
+              team={content.team!}
+              editable={editable}
+              onTeamChange={
+                onContentChange
+                  ? (team) => onContentChange({ ...content, team })
+                  : undefined
+              }
+            />
+          </div>
         )}
 
         {hasNotes && (
-          <NotesSection
-            notes={content.notes}
-            timingNote={content.timing_note}
-          />
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('notes')} title="Remove Notes" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <NotesSection
+              notes={content.notes}
+              timingNote={content.timing_note}
+              editable={editable}
+              onNotesChange={
+                onContentChange
+                  ? (notes) => onContentChange({ ...content, notes })
+                  : undefined
+              }
+              onTimingNoteChange={
+                onContentChange
+                  ? (timingNote) => onContentChange({ ...content, timing_note: timingNote })
+                  : undefined
+              }
+            />
+          </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-end justify-between border-t border-[#D4D0C8] pt-8">
+        <div className="proposal-footer flex items-end justify-between border-t border-[#D4D0C8] pt-8">
           <div>
             <p className="text-sm font-medium text-[#1A1A1A]">{content.contact?.name || 'Danny Somoza'}</p>
             <p className="text-sm text-[#6B6B6B]">{content.contact?.email || 'danny@cambridgestudio.com'}</p>

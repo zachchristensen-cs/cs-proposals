@@ -2,6 +2,8 @@ import type { ProposalContent } from '@/types/database'
 import { formatCurrency } from '../lib/formatCurrency'
 import { EditableText } from '../components/EditableText'
 import { EditablePrice } from '../components/EditablePrice'
+import { RemoveButton } from '../components/RemoveButton'
+import { AddButton } from '../components/AddButton'
 
 interface PaymentSectionProps {
   payment: ProposalContent['payment']
@@ -21,13 +23,23 @@ export function PaymentSection({
     onPaymentChange?.({ ...payment, terms })
   }
 
+  function removeTerm(index: number) {
+    const terms = payment.terms.filter((_, i) => i !== index)
+    onPaymentChange?.({ ...payment, terms })
+  }
+
+  function addTerm() {
+    const terms = [...payment.terms, { label: '', amount: 0, description: '' }]
+    onPaymentChange?.({ ...payment, terms })
+  }
+
   return (
     <section className="mb-12">
-      <div className="space-y-3">
+      <div className="group/list space-y-3">
         {payment.terms.map((term, i) => (
           <div
             key={i}
-            className="flex items-baseline justify-between"
+            className="group/item flex items-baseline justify-between"
           >
             <div className="mr-4">
               <span className="text-sm font-medium text-[#1A1A1A]">
@@ -53,18 +65,26 @@ export function PaymentSection({
                 </span>
               )}
             </div>
-            <span className="shrink-0 text-sm text-[#1A1A1A]">
-              {editable ? (
-                <EditablePrice
-                  value={term.amount}
-                  onChange={(v) => updateTerm(i, 'amount', v)}
-                />
-              ) : (
-                formatCurrency(term.amount)
+            <div className="flex items-baseline gap-2">
+              <span className="shrink-0 text-sm text-[#1A1A1A]">
+                {editable ? (
+                  <EditablePrice
+                    value={term.amount}
+                    onChange={(v) => updateTerm(i, 'amount', v)}
+                  />
+                ) : (
+                  formatCurrency(term.amount)
+                )}
+              </span>
+              {editable && onPaymentChange && (
+                <RemoveButton onRemove={() => removeTerm(i)} title="Remove term" />
               )}
-            </span>
+            </div>
           </div>
         ))}
+        {editable && onPaymentChange && (
+          <AddButton onAdd={addTerm} label="Add term" />
+        )}
       </div>
     </section>
   )

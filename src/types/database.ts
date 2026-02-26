@@ -149,6 +149,15 @@ export interface Proposal {
   updated_at: string
 }
 
+export interface ProposalVersion {
+  id: string
+  proposal_id: string
+  content: ProposalContent
+  client_name: string | null
+  created_by: string
+  created_at: string
+}
+
 export interface ProposalAttachment {
   file_name: string
   file_path: string
