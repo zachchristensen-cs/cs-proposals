@@ -243,6 +243,20 @@ export interface ContractTemplate {
   created_at: string
 }
 
+export interface ContractTemplateClause {
+  id: string
+  template_id: string
+  clause_key: string
+  title: string
+  section_number: string | null
+  content: string
+  is_conditional: boolean
+  condition_description: string | null
+  sort_order: number
+  is_locked: boolean
+  created_at: string
+}
+
 export interface ContractSigner {
   id: string
   contract_id: string
