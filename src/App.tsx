@@ -11,6 +11,7 @@ import { AdminDashboardPage } from '@/features/dashboard/AdminDashboardPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { ProposalsPage, NewProposalPage, EditProposalPage, PublicProposalPage } from '@/features/proposals'
 import { TeamPage } from '@/features/team'
+import { SettingsPage } from '@/features/settings'
 import { Toaster } from 'sonner'
 
 function Providers() {
@@ -49,8 +50,14 @@ const router = createBrowserRouter([
                   { path: '/admin/team', element: <TeamPage /> },
                 ],
               },
+              {
+                element: <RequireRole roles={['admin']} />,
+                children: [
+                  { path: '/admin/settings', element: <SettingsPage /> },
+                ],
+              },
 
-{ path: '/account', element: <AccountPage /> },
+              { path: '/account', element: <AccountPage /> },
             ],
           },
         ],

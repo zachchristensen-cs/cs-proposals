@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FileText, Users, User } from 'lucide-react'
+import { FileText, Users, User, Settings } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const tools = [
@@ -16,6 +16,13 @@ const tools = [
     href: '/admin/team',
   },
   {
+    title: 'Settings',
+    description: 'AI prompt and workspace config',
+    icon: Settings,
+    href: '/admin/settings',
+    adminOnly: true,
+  },
+  {
     title: 'Account',
     description: 'Update your profile and settings',
     icon: User,
@@ -24,10 +31,12 @@ const tools = [
 ]
 
 export function AdminDashboardPage() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
 
   const fullName = (user?.user_metadata?.full_name as string) ?? ''
   const firstName = fullName.split(' ')[0] || user?.email?.split('@')[0] || 'there'
+
+  const visibleTools = tools.filter((t) => !t.adminOnly || role === 'admin')
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
@@ -39,7 +48,7 @@ export function AdminDashboardPage() {
       </p>
 
       <div className="mt-10 grid w-full max-w-2xl gap-4 sm:grid-cols-3">
-        {tools.map((tool) => (
+        {visibleTools.map((tool) => (
           <Link
             key={tool.href}
             to={tool.href}

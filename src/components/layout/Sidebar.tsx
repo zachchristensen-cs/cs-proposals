@@ -84,7 +84,7 @@ function SidebarLink({
 }
 
 export function Sidebar({ onNavigate }: SidebarProps) {
-  const { user, isAgencyStaff, signOut } = useAuth()
+  const { user, isAgencyStaff, isWorkspaceAdmin, signOut } = useAuth()
   const { collapsed, toggle } = useSidebar()
   const navigate = useNavigate()
 
@@ -182,6 +182,16 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               Proposals
             </SidebarLink>
           </>
+        )}
+        {isWorkspaceAdmin && (
+          <SidebarLink
+            to="/admin/settings"
+            icon={Settings}
+            collapsed={isCollapsed}
+            onNavigate={onNavigate}
+          >
+            Settings
+          </SidebarLink>
         )}
 
       </nav>
