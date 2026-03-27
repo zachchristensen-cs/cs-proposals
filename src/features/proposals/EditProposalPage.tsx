@@ -353,15 +353,22 @@ export function EditProposalPage() {
       })
 
       if (error || !stream) {
+        const isAuthError = error?.toLowerCase().includes('unauthorized') ||
+          error?.toLowerCase().includes('session expired') ||
+          error?.includes('401')
+        const displayError = isAuthError
+          ? 'Your session has expired. Please refresh the page and try again.'
+          : 'Something went wrong. Please try again.'
+
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantMsg.id
-              ? { ...m, content: 'Something went wrong. Please try again.' }
+              ? { ...m, content: displayError }
               : m,
           ),
         )
         setIsStreaming(false)
-        toast.error('Failed to connect. Please try again.')
+        toast.error(displayError)
         return
       }
 
@@ -401,8 +408,8 @@ export function EditProposalPage() {
     )
 
     if (proposalUpdate) {
-      const { client_name: _cn, tier: _t, ...updatedContent } = proposalUpdate as ProposalContent & { client_name?: string; tier?: number }
-      handleContentChange(updatedContent as ProposalContent)
+      const { client_name: _cn, tier: _t, ...updatedFields } = proposalUpdate as ProposalContent & { client_name?: string; tier?: number }
+      handleContentChange({ ...content, ...updatedFields } as ProposalContent)
     }
 
     // Save messages to DB

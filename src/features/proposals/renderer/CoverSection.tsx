@@ -12,6 +12,8 @@ export function CoverSection({ cover, editable, onCoverChange }: CoverSectionPro
     onCoverChange?.({ ...cover, [field]: value })
   }
 
+  if (!cover) return null
+
   return (
     <section className="mb-12">
       {/* Date */}

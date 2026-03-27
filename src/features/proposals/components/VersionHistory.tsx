@@ -37,14 +37,14 @@ function diffSummary(current: ProposalContent, previous: ProposalContent): strin
   const changes: string[] = []
 
   // Cover
-  if (current.cover.client_name !== previous.cover.client_name)
+  if (current.cover?.client_name !== previous.cover?.client_name)
     changes.push('Updated client name')
-  else if (current.cover.description !== previous.cover.description)
+  else if (current.cover?.description !== previous.cover?.description)
     changes.push('Updated cover description')
   else if (
-    current.cover.date !== previous.cover.date ||
-    current.cover.timeline !== previous.cover.timeline ||
-    current.cover.prepared_for !== previous.cover.prepared_for
+    current.cover?.date !== previous.cover?.date ||
+    current.cover?.timeline !== previous.cover?.timeline ||
+    current.cover?.prepared_for !== previous.cover?.prepared_for
   )
     changes.push('Updated cover details')
 
