@@ -64,35 +64,44 @@ Deno.serve(async (req) => {
       .from("admin_settings")
       .select("app_url, agency_name")
       .limit(1)
-      .single()
+      .maybeSingle()
 
     const appUrl = settings?.app_url || "http://localhost:5173"
     const agencyName = settings?.agency_name || "Cambridge Studio"
     const inviteUrl = `${appUrl}/accept-invite?token=${invite.token}`
 
-    await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    try {
+      const emailRes = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            to: invite.email,
+            subject: `Reminder: You've been invited to ${agencyName}`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Invitation Reminder</h2>
+                <p>This is a reminder that you've been invited to join ${agencyName}.</p>
+                <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">Accept Invitation</a></p>
+                <p style="color: #666; font-size: 14px;">${inviteUrl}</p>
+              </div>
+            `,
+            text: `Reminder: You've been invited to ${agencyName}. Accept: ${inviteUrl}`,
+          }),
         },
-        body: JSON.stringify({
-          to: invite.email,
-          subject: `Reminder: You've been invited to ${agencyName}`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Invitation Reminder</h2>
-              <p>This is a reminder that you've been invited to join ${agencyName}.</p>
-              <p><a href="${inviteUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">Accept Invitation</a></p>
-              <p style="color: #666; font-size: 14px;">${inviteUrl}</p>
-            </div>
-          `,
-          text: `Reminder: You've been invited to ${agencyName}. Accept: ${inviteUrl}`,
-        }),
-      },
-    )
+      )
+      if (!emailRes.ok) {
+        console.error("Failed to send reminder email:", await emailRes.text())
+        return Response.json({ error: "Failed to send email" }, { status: 500, headers: corsHeaders })
+      }
+    } catch (emailErr) {
+      console.error("Email service error:", emailErr)
+      return Response.json({ error: "Failed to send email" }, { status: 500, headers: corsHeaders })
+    }
 
     return Response.json({ success: true }, { headers: corsHeaders })
   } catch (error) {

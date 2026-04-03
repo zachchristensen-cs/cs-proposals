@@ -6,6 +6,7 @@ export type {
   ProposalStatus,
   ProposalTier,
   ProposalLineItem,
+  ProposalPhaseGroup,
   ProposalPhase,
   ProposalPaymentTerm,
   ProposalMaintenanceTier,
@@ -13,6 +14,7 @@ export type {
   ProposalPersona,
   ProposalContent,
   Proposal,
+  ProposalVersion,
   ProposalAttachment,
   ProposalMessage,
 } from './database'

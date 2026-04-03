@@ -18,9 +18,6 @@ interface ProposalRendererProps {
 }
 
 export function ProposalRenderer({ content, editable, onContentChange }: ProposalRendererProps) {
-  // Only phases and maintenance get numbered circles
-  let scopeNum = 0
-
   const hasOpportunity = (content.opportunity?.paragraphs?.length ?? 0) > 0
   const hasPersonas = (content.personas?.items?.length ?? 0) > 0
   const hasPhases = (content.phases?.length ?? 0) > 0
@@ -34,8 +31,9 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
     ? content.payment!.terms.map((t) => t.label).join(' & ').replace(/&([^&]*)$/, '& $1') || undefined
     : undefined
 
-  // Calculate starting scope number — phases come first in numbering
-  const phaseScopeStart = scopeNum + 1
+  // Numbered sections: phases start at 1, maintenance follows after
+  const phaseScopeStart = 1
+  const maintenanceScopeNum = phaseScopeStart + (content.phases?.length ?? 0)
 
   function removeSection(key: 'opportunity' | 'personas' | 'maintenance' | 'team' | 'notes' | 'timing_note') {
     if (!onContentChange) return
@@ -111,7 +109,6 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
                   : undefined
               }
             />
-            {(() => { scopeNum = phaseScopeStart + content.phases.length - 1; return null })()}
           </>
         )}
 
@@ -124,7 +121,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
             )}
             <MaintenanceSection
               maintenance={content.maintenance!}
-              sectionNumber={++scopeNum}
+              sectionNumber={maintenanceScopeNum}
               editable={editable}
               onMaintenanceChange={
                 onContentChange
@@ -202,8 +199,8 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         {/* Footer */}
         <div className="proposal-footer flex items-end justify-between border-t border-[#D4D0C8] pt-8">
           <div>
-            <p className="text-sm font-medium text-[#1A1A1A]">{content.contact?.name || 'Danny Somoza'}</p>
-            <p className="text-sm text-[#6B6B6B]">{content.contact?.email || 'danny@cambridgestudio.com'}</p>
+            <p className="text-sm font-medium text-[#1A1A1A]">{content.contact?.name || ''}</p>
+            <p className="text-sm text-[#6B6B6B]">{content.contact?.email || ''}</p>
           </div>
           <img
             src={cambridgeLogo}

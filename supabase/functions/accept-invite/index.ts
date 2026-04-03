@@ -78,10 +78,18 @@ Deno.serve(async (req) => {
     }
 
     // Mark invite as accepted
-    await supabaseAdmin
+    const { error: acceptError } = await supabaseAdmin
       .from("team_invites")
       .update({ accepted_at: new Date().toISOString() })
       .eq("id", invite.id)
+
+    if (acceptError) {
+      console.error("Failed to mark invite as accepted:", acceptError)
+      return Response.json(
+        { error: "Failed to accept invitation" },
+        { status: 500, headers: corsHeaders },
+      )
+    }
 
     return Response.json(
       { success: true },

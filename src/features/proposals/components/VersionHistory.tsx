@@ -146,7 +146,8 @@ export function VersionHistory({ proposalId, onRestore }: VersionHistoryProps) {
       .eq('proposal_id', proposalId)
       .order('created_at', { ascending: false })
       .limit(50)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) console.error('Failed to load versions:', error)
         setVersions((data as ProposalVersion[]) ?? [])
         setLoading(false)
       })

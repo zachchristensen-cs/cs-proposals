@@ -11,10 +11,9 @@ import { ChatMessage } from './components/ChatMessage'
 import { ChatInput } from './components/ChatInput'
 import { SaveIndicator } from './components/SaveIndicator'
 import { VersionHistory } from './components/VersionHistory'
-import { parseProposalResponse, stripProposalTags } from './lib/parseProposalUpdate'
 import { recalculateTotals } from './lib/recalculateTotals'
 import { useUndoStack } from './hooks/useUndoStack'
-import { streamEdgeFunction } from '@/lib/streaming'
+import { useProposalChat } from './hooks/useProposalChat'
 import { downloadProposalPdf } from './lib/downloadPdf'
 import { PresentationMode } from './presentation'
 import { toast } from 'sonner'
@@ -97,8 +96,6 @@ export function EditProposalPage() {
   const [messages, setMessages] = useState<ProposalMessage[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [copied, setCopied] = useState(false)
   const [presenting, setPresenting] = useState(false)
@@ -110,6 +107,14 @@ export function EditProposalPage() {
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
   const contentRef = useRef<ProposalContent | null>(null)
   const { pushUndo, popUndo, popRedo, canUndo, canRedo } = useUndoStack()
+
+  const onStreamUpdate = useCallback((assistantId: string, text: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === assistantId ? { ...m, content: text } : m)),
+    )
+  }, [])
+
+  const { isStreaming, isGenerating, streamChat } = useProposalChat({ onStreamUpdate })
 
   // Load proposal, messages, and team members
   useEffect(() => {
@@ -335,77 +340,21 @@ export function EditProposalPage() {
     }
 
     setMessages((prev) => [...prev, userMsg, assistantMsg])
-    setIsStreaming(true)
 
-    let buffer = ''
+    // Previous messages use plain text, current message uses multimodal content
+    const allMessages = [
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user' as const, content: apiContent },
+    ]
 
-    try {
-      // Previous messages use plain text, current message uses multimodal content
-      const allMessages = [
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-        { role: 'user' as const, content: apiContent },
-      ]
+    const result = await streamChat(allMessages, assistantMsg.id, {
+      proposal_id: id,
+      current_content: content,
+    })
 
-      const { stream, error } = await streamEdgeFunction('proposal-chat', {
-        messages: allMessages,
-        proposal_id: id,
-        current_content: content,
-      })
+    if (!result) return
 
-      if (error || !stream) {
-        const isAuthError = error?.toLowerCase().includes('unauthorized') ||
-          error?.toLowerCase().includes('session expired') ||
-          error?.includes('401')
-        const displayError = isAuthError
-          ? 'Your session has expired. Please refresh the page and try again.'
-          : 'Something went wrong. Please try again.'
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id
-              ? { ...m, content: displayError }
-              : m,
-          ),
-        )
-        setIsStreaming(false)
-        toast.error(displayError)
-        return
-      }
-
-      const reader = stream.getReader()
-      const decoder = new TextDecoder()
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const displayText = stripProposalTags(buffer)
-
-        // Detect when proposal JSON is being generated
-        const generating = buffer.includes('<proposal_update>') && !buffer.includes('</proposal_update>')
-        setIsGenerating(generating)
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id ? { ...m, content: displayText } : m,
-          ),
-        )
-      }
-    } catch {
-      // Keep partial content
-    }
-
-    setIsStreaming(false)
-    setIsGenerating(false)
-
-    const { displayText, proposalUpdate } = parseProposalResponse(buffer)
-
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === assistantMsg.id ? { ...m, content: displayText } : m,
-      ),
-    )
+    const { displayText, proposalUpdate } = result
 
     if (proposalUpdate) {
       const { client_name: _cn, tier: _t, ...updatedFields } = proposalUpdate as ProposalContent & { client_name?: string; tier?: number }

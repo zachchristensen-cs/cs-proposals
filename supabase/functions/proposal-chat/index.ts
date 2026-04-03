@@ -9,6 +9,7 @@ const corsHeaders = {
 }
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")
+const ANTHROPIC_MODEL = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-4-6"
 
 // Minimal fallback if the DB row has no prompt yet
 const DEFAULT_PROMPT = `You are an AI sales engineer. Help the team create project proposals and estimates for clients.`
@@ -16,20 +17,24 @@ const DEFAULT_PROMPT = `You are an AI sales engineer. Help the team create proje
 async function getSystemPrompt(
   supabaseAdmin: ReturnType<typeof createClient>,
 ): Promise<string> {
-  const { data } = await supabaseAdmin
-    .from("admin_settings")
-    .select("system_prompt")
-    .limit(1)
-    .single()
+  try {
+    const { data } = await supabaseAdmin
+      .from("admin_settings")
+      .select("system_prompt")
+      .limit(1)
+      .maybeSingle()
 
-  return data?.system_prompt || DEFAULT_PROMPT
+    return data?.system_prompt || DEFAULT_PROMPT
+  } catch (err) {
+    console.error("Failed to load system prompt:", err)
+    return DEFAULT_PROMPT
+  }
 }
 
 function buildSystemPrompt(
   productSpec: string,
   options: {
     currentContent?: Record<string, unknown>
-    tier?: number
   },
 ): string {
   const today = new Date().toLocaleDateString("en-US", {
@@ -54,6 +59,15 @@ ${JSON.stringify(options.currentContent, null, 2)}
 When generating, also include the following top-level fields for the database record:
 - client_name: string
 - tier: 1, 2, or 3
+
+CRITICAL: Return the JSON with all fields at the TOP LEVEL of the object. Do NOT wrap them inside a "content" key. The correct format is:
+{
+  "client_name": "...",
+  "tier": 2,
+  "cover": { ... },
+  "phases": [ ... ],
+  ...
+}
 
 The ProposalContent JSON schema:
 {
@@ -142,19 +156,23 @@ Deno.serve(async (req) => {
 
     // If editing an existing proposal, load its content
     let proposalContent = current_content
-    let tier = null
 
     if (proposal_id && !current_content) {
       const { data } = await supabaseAdmin
         .from("proposals")
-        .select("content, tier")
+        .select("content")
         .eq("id", proposal_id)
+        .eq("created_by", user.id)
         .single()
 
-      if (data) {
-        proposalContent = data.content
-        tier = data.tier
+      if (!data) {
+        return Response.json(
+          { error: "Proposal not found" },
+          { status: 404, headers: corsHeaders },
+        )
       }
+
+      proposalContent = data.content
     }
 
     // Load the system prompt from admin_settings
@@ -162,7 +180,6 @@ Deno.serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt(productSpec, {
       currentContent: proposalContent,
-      tier,
     })
 
     // Call Anthropic streaming API
@@ -174,7 +191,7 @@ Deno.serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: ANTHROPIC_MODEL,
         max_tokens: 8096,
         stream: true,
         system: systemPrompt,
@@ -229,12 +246,42 @@ Deno.serve(async (req) => {
                 const event = JSON.parse(data)
                 if (
                   event.type === "content_block_delta" &&
-                  event.delta?.type === "text_delta"
+                  event.delta?.type === "text_delta" &&
+                  event.delta.text
                 ) {
                   controller.enqueue(encoder.encode(event.delta.text))
+                } else if (event.type === "error") {
+                  console.error("Anthropic stream error:", JSON.stringify(event))
+                  controller.enqueue(
+                    encoder.encode(
+                      "Sorry, something went wrong. Please try again.",
+                    ),
+                  )
                 }
               } catch {
                 // Skip malformed JSON lines
+              }
+            }
+          }
+
+          // Flush any remaining buffer content
+          if (buffer.trim()) {
+            const remaining = buffer.trim()
+            if (remaining.startsWith("data: ")) {
+              const data = remaining.slice(6).trim()
+              if (data !== "[DONE]") {
+                try {
+                  const event = JSON.parse(data)
+                  if (
+                    event.type === "content_block_delta" &&
+                    event.delta?.type === "text_delta" &&
+                    event.delta.text
+                  ) {
+                    controller.enqueue(encoder.encode(event.delta.text))
+                  }
+                } catch {
+                  // Skip malformed trailing data
+                }
               }
             }
           }

@@ -31,6 +31,7 @@ export interface AdminSettings {
   admin_emails_enabled: boolean
   app_url: string
   agency_name: string
+  system_prompt: string | null
 }
 
 // ─── Proposals ──────────────────────────────────────────────

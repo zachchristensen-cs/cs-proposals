@@ -22,7 +22,22 @@ export function parseProposalResponse(fullResponse: string): ParseResult {
 
   // Parse the JSON
   try {
-    const proposalUpdate = JSON.parse(updateMatch[1].trim())
+    let proposalUpdate = JSON.parse(updateMatch[1].trim())
+
+    // Claude sometimes wraps the proposal fields inside an extra "content" key.
+    // Detect and unwrap: if proposalUpdate.content exists (as an object with cover/phases)
+    // but proposalUpdate.cover does not, flatten it.
+    if (
+      proposalUpdate.content &&
+      typeof proposalUpdate.content === 'object' &&
+      !Array.isArray(proposalUpdate.content) &&
+      proposalUpdate.content.cover &&
+      !proposalUpdate.cover
+    ) {
+      const { content: nested, ...topLevel } = proposalUpdate
+      proposalUpdate = { ...nested, ...topLevel }
+    }
+
     return { displayText, proposalUpdate, parseError: false }
   } catch {
     console.error('Failed to parse proposal update JSON')

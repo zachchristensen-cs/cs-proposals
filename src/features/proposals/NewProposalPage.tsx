@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -6,8 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import type { ProposalContent, ProposalAttachment } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { generateSlug } from './lib/slugGenerator'
-import { parseProposalResponse, stripProposalTags } from './lib/parseProposalUpdate'
-import { streamEdgeFunction } from '@/lib/streaming'
+import { useProposalChat } from './hooks/useProposalChat'
 import { ChatMessage } from './components/ChatMessage'
 import { ChatInput } from './components/ChatInput'
 import { toast } from 'sonner'
@@ -29,10 +28,16 @@ export function NewProposalPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [messages, setMessages] = useState<LocalMessage[]>([])
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [currentMember, setCurrentMember] = useState<TeamMember | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const onStreamUpdate = useCallback((assistantId: string, text: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === assistantId ? { ...m, content: text } : m)),
+    )
+  }, [])
+
+  const { isStreaming, isGenerating, streamChat } = useProposalChat({ onStreamUpdate })
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -76,68 +81,17 @@ export function NewProposalPage() {
     }
 
     setMessages((prev) => [...prev, userMsg, assistantMsg])
-    setIsStreaming(true)
 
-    let buffer = ''
+    const allMessages = [...messages, userMsg].map((m) => ({
+      role: m.role,
+      content: m.content,
+    }))
 
-    try {
-      const allMessages = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+    const result = await streamChat(allMessages, assistantMsg.id, {})
 
-      const { stream, error } = await streamEdgeFunction('proposal-chat', {
-        messages: allMessages,
-      })
+    if (!result) return
 
-      if (error || !stream) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id
-              ? { ...m, content: 'Something went wrong. Please try again.' }
-              : m,
-          ),
-        )
-        setIsStreaming(false)
-        toast.error('Failed to connect. Please try again.')
-        return
-      }
-
-      const reader = stream.getReader()
-      const decoder = new TextDecoder()
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const displayText = stripProposalTags(buffer)
-
-        // Detect when proposal JSON is being generated
-        const generating = buffer.includes('<proposal_update>') && !buffer.includes('</proposal_update>')
-        setIsGenerating(generating)
-
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id ? { ...m, content: displayText } : m,
-          ),
-        )
-      }
-    } catch {
-      // Keep partial content visible
-    }
-
-    setIsStreaming(false)
-    setIsGenerating(false)
-
-    // Parse the complete response
-    const { displayText, proposalUpdate } = parseProposalResponse(buffer)
-
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === assistantMsg.id ? { ...m, content: displayText } : m,
-      ),
-    )
+    const { displayText, proposalUpdate } = result
 
     // If Claude generated a proposal, create it in the DB and navigate
     if (proposalUpdate && user) {

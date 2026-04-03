@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       .from("admin_settings")
       .select("app_url, agency_name")
       .limit(1)
-      .single()
+      .maybeSingle()
 
     const appUrl = appSettings?.app_url || Deno.env.get("APP_URL") || "http://localhost:5173"
     const agencyName = appSettings?.agency_name || "Cambridge Studio"
