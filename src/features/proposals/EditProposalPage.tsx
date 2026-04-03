@@ -12,6 +12,7 @@ import { ChatInput } from './components/ChatInput'
 import { SaveIndicator } from './components/SaveIndicator'
 import { VersionHistory } from './components/VersionHistory'
 import { recalculateTotals } from './lib/recalculateTotals'
+import { mergeProposalUpdate } from './lib/mergeProposalUpdate'
 import { useUndoStack } from './hooks/useUndoStack'
 import { useProposalChat } from './hooks/useProposalChat'
 import { downloadProposalPdf } from './lib/downloadPdf'
@@ -341,6 +342,9 @@ export function EditProposalPage() {
 
     setMessages((prev) => [...prev, userMsg, assistantMsg])
 
+    // Snapshot the content at send time — used to detect which sections Claude changed
+    const contentSnapshot = structuredClone(content)
+
     // Previous messages use plain text, current message uses multimodal content
     const allMessages = [
       ...messages.map((m) => ({ role: m.role, content: m.content })),
@@ -358,7 +362,11 @@ export function EditProposalPage() {
 
     if (proposalUpdate) {
       const { client_name: _cn, tier: _t, ...updatedFields } = proposalUpdate as ProposalContent & { client_name?: string; tier?: number }
-      handleContentChange({ ...content, ...updatedFields } as ProposalContent)
+      // Selective merge: only apply sections Claude actually changed vs what was sent.
+      // Preserves manual edits the user made while Claude was streaming.
+      const currentContent = contentRef.current ?? content
+      const merged = mergeProposalUpdate(currentContent, contentSnapshot, updatedFields)
+      handleContentChange(merged)
     }
 
     // Save messages to DB
