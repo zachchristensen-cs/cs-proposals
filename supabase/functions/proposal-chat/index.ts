@@ -301,9 +301,12 @@ Deno.serve(async (req) => {
       },
     })
   } catch (error) {
-    console.error("proposal-chat error:", error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const errStack = error instanceof Error ? error.stack : ""
+    console.error("proposal-chat error:", errMsg)
+    console.error("proposal-chat stack:", errStack)
     return Response.json(
-      { error: "An error occurred. Please try again." },
+      { error: `An error occurred: ${errMsg}` },
       { status: 500, headers: corsHeaders },
     )
   }

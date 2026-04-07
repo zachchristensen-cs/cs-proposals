@@ -40,7 +40,7 @@ export function useProposalChat({ onStreamUpdate }: UseProposalChatOptions) {
             error?.includes('401')
           const displayError = isAuthError
             ? 'Your session has expired. Please refresh the page and try again.'
-            : 'Something went wrong. Please try again.'
+            : error || 'Something went wrong. Please try again.'
 
           onStreamUpdate(assistantId, displayError)
           setIsStreaming(false)
