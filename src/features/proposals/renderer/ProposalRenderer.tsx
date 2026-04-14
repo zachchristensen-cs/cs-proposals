@@ -142,7 +142,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
 
         {/* Toggle to hide/show total + payment sections */}
         {editable && onContentChange && (content.total ?? 0) > 0 && (
-          <div className="mb-8 flex items-center justify-end gap-2">
+          <div className="mb-8 flex items-center justify-end gap-2 print:hidden">
             <span className="text-sm text-[#6B6B6B]">
               {content.hide_total ? 'Total & payment hidden from client' : 'Hide total & payment'}
             </span>
