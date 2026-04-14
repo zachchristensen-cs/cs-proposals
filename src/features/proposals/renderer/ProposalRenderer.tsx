@@ -132,7 +132,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
           </div>
         )}
 
-        {(content.total ?? 0) > 0 && (
+        {(content.total ?? 0) > 0 && !content.hide_total && (
           <TotalsSection
             total={content.total}
             paymentNote={paymentNote}
@@ -140,7 +140,20 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
           />
         )}
 
-        {hasPayment && (
+        {/* Toggle to hide/show total + payment sections */}
+        {editable && onContentChange && (content.total ?? 0) > 0 && (
+          <div className="mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => onContentChange({ ...content, hide_total: !content.hide_total })}
+              className="text-xs text-[#6B6B6B] underline decoration-dotted underline-offset-2 hover:text-[#1A1A1A] transition-colors"
+            >
+              {content.hide_total ? 'Show total & payment' : 'Hide total & payment'}
+            </button>
+          </div>
+        )}
+
+        {hasPayment && !content.hide_total && (
           <PaymentSection
             payment={content.payment}
             editable={editable}

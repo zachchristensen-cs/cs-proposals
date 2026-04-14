@@ -84,6 +84,7 @@ The ProposalContent JSON schema:
     "items": []
   }],
   "total": number,
+  "hide_total?": boolean,
   "payment": { "terms": [{ "label": string, "amount": number, "description": string }] },
   "maintenance?": { "tiers": [{ "name": string, "price": string, "summary": string, "description": string }], "recommendation?": string },
   "team?": { "intro": string, "members": [{ "name": string, "role": string, "bio": string, "initials": string }] },
@@ -212,9 +213,9 @@ Deno.serve(async (req) => {
         )
       }
       const errorText = await response.text()
-      console.error("Anthropic API error:", errorText)
+      console.error("Anthropic API error:", response.status, errorText)
       return Response.json(
-        { error: "Failed to get a response. Please try again." },
+        { error: `Anthropic ${response.status}: ${errorText}` },
         { status: 500, headers: corsHeaders },
       )
     }

@@ -108,6 +108,7 @@ export interface ProposalContent {
   phases: ProposalPhase[]
 
   total: number
+  hide_total?: boolean
 
   payment: {
     terms: ProposalPaymentTerm[]
