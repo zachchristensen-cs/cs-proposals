@@ -31,6 +31,36 @@ async function getSystemPrompt(
   }
 }
 
+async function getTeamRosterSection(
+  supabaseAdmin: ReturnType<typeof createClient>,
+): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("team_members")
+      .select("name, role, bio, initials, photo_url")
+      .order("sort_order", { ascending: true })
+
+    if (!data?.length) return ""
+
+    const lines = data.map((m, i) => {
+      const photo = m.photo_url ? `, photo_url: ${m.photo_url}` : ""
+      const bio = m.bio ? `\n   Bio: ${m.bio}` : ""
+      return `${i + 1}. ${m.name} — ${m.role} (initials: ${m.initials}${photo})${bio}`
+    })
+
+    return `\n\n## Team Members
+
+This roster is managed in the app's Settings and is the single source of truth. When including the team section, use exactly these people:
+
+${lines.join("\n")}
+
+Use the exact names, roles, initials, and photo_url values as provided — include photo_url on each team member in the JSON when one is listed. Do NOT invent team members. If a bio is provided, use it verbatim; only write a brief bio yourself when none is provided.`
+  } catch (err) {
+    console.error("Failed to load team members:", err)
+    return ""
+  }
+}
+
 function buildSystemPrompt(
   productSpec: string,
   options: {
@@ -47,7 +77,7 @@ function buildSystemPrompt(
     `\n\nToday's date is ${today}. Always use this as the cover date when generating a new proposal.\n\n`
 
   if (options.currentContent) {
-    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change.
+    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
 
 <current_proposal>
 ${JSON.stringify(options.currentContent, null, 2)}
@@ -79,6 +109,7 @@ The ProposalContent JSON schema:
     "timeline?": string,
     "price": number,
     "subtotal": number,
+    "hide_price?": boolean,
     "narrative?": string,
     "groups?": [{ "name": string, "items": string[] }],
     "items": []
@@ -87,12 +118,12 @@ The ProposalContent JSON schema:
   "hide_total?": boolean,
   "payment": { "terms": [{ "label": string, "amount": number, "description": string }] },
   "maintenance?": { "tiers": [{ "name": string, "price": string, "summary": string, "description": string }], "recommendation?": string },
-  "team?": { "intro": string, "members": [{ "name": string, "role": string, "bio": string, "initials": string }] },
+  "team?": { "intro": string, "members": [{ "name": string, "role": string, "bio": string, "initials": string, "photo_url?": string }] },
   "notes?": { "items": string[] },
   "timing_note?": string
 }
 
-IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value — the total cost for that phase. The "total" field must equal the sum of all phase prices.
+IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value — the total cost for that phase. The "total" field must equal the sum of all phase prices. A phase's "hide_price" only hides the price display next to the phase name — the phase still counts toward "total"; preserve this flag when updating phases.
 `
   }
 
@@ -176,10 +207,13 @@ Deno.serve(async (req) => {
       proposalContent = data.content
     }
 
-    // Load the system prompt from admin_settings
-    const productSpec = await getSystemPrompt(supabaseAdmin)
+    // Load the system prompt from admin_settings and the team roster
+    const [productSpec, teamRoster] = await Promise.all([
+      getSystemPrompt(supabaseAdmin),
+      getTeamRosterSection(supabaseAdmin),
+    ])
 
-    const systemPrompt = buildSystemPrompt(productSpec, {
+    const systemPrompt = buildSystemPrompt(productSpec + teamRoster, {
       currentContent: proposalContent,
     })
 

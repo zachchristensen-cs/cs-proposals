@@ -34,6 +34,17 @@ export interface AdminSettings {
   system_prompt: string | null
 }
 
+export interface AgencyTeamMember {
+  id: string
+  name: string
+  role: string
+  bio: string
+  initials: string
+  photo_url: string | null
+  sort_order: number
+  created_at: string
+}
+
 // ─── Proposals ──────────────────────────────────────────────
 
 export type ProposalStatus = 'draft' | 'sent' | 'archived'
@@ -55,6 +66,8 @@ export interface ProposalPhase {
   timeline?: string
   price: number
   subtotal: number
+  /** Hide this phase's price in the rendered proposal; still counts toward the total */
+  hide_price?: boolean
   narrative?: string
   groups?: ProposalPhaseGroup[]
   items: ProposalLineItem[]

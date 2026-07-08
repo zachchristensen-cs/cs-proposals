@@ -3,6 +3,7 @@ export type {
   User,
   TeamInvite,
   AdminSettings,
+  AgencyTeamMember,
   ProposalStatus,
   ProposalTier,
   ProposalLineItem,

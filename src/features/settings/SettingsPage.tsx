@@ -5,6 +5,8 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { TeamRosterSettings } from './TeamRosterSettings'
 
 export function SettingsPage() {
   const [prompt, setPrompt] = useState('')
@@ -67,6 +69,10 @@ export function SettingsPage() {
 
   return (
     <PageWrapper title="Settings" description="Workspace configuration">
+      <TeamRosterSettings />
+
+      <Separator className="my-8" />
+
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Bot className="size-4 text-muted-foreground" />

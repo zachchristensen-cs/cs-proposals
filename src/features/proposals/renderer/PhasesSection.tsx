@@ -146,8 +146,8 @@ export function PhasesSection({
                   <RemoveButton onRemove={() => removePhase(i)} title="Remove phase" />
                 )}
               </div>
-              {!hidePricing && (
-                <span className="shrink-0 font-serif text-2xl text-[#1A1A1A]">
+              {!hidePricing && !phase.hide_price && (
+                <span className="flex shrink-0 items-center gap-1.5 font-serif text-2xl text-[#1A1A1A]">
                   {editable ? (
                     <EditablePrice
                       value={phase.price ?? phase.subtotal}
@@ -156,7 +156,23 @@ export function PhasesSection({
                   ) : (
                     formatCurrency(phase.price ?? phase.subtotal)
                   )}
+                  {editable && onPhasesChange && (
+                    <RemoveButton
+                      onRemove={() => updatePhase(i, { hide_price: true })}
+                      title="Hide price (still counts toward total)"
+                    />
+                  )}
                 </span>
+              )}
+              {!hidePricing && phase.hide_price && editable && onPhasesChange && (
+                <button
+                  type="button"
+                  onClick={() => updatePhase(i, { hide_price: false })}
+                  className="shrink-0 self-center text-xs text-[#6B6B6B] underline decoration-[#D4D0C8] underline-offset-2 opacity-0 transition-opacity hover:text-[#1A1A1A] group-hover/item:opacity-100 print:hidden"
+                  title="Price is hidden from the client but still counts toward the total"
+                >
+                  Show price
+                </button>
               )}
             </div>
 
