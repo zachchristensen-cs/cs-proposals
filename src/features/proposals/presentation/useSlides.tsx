@@ -31,7 +31,7 @@ function FooterSlide({ contact, brand }: { contact?: ProposalContent['contact'];
       <img
         src={brand.logo}
         alt={brand.name}
-        className={`mb-10 h-12 w-auto ${brand.logoClass}`}
+        className={`mb-10 w-auto ${brand.slideLogoClass}`}
       />
       <h2 className="mb-3 font-serif text-3xl text-[var(--p-ink)]">Thank You</h2>
       <p className="text-sm text-[var(--p-muted)]">
