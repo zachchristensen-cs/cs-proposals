@@ -8,6 +8,8 @@ export interface BrandConfig {
   name: string
   logo: string
   themeClass: string
+  /** Extra classes for the footer logo — Cambridge's mono mark reads as a watermark at reduced opacity; Ammo's color mark stays full strength */
+  logoClass: string
 }
 
 export const BRANDS: Record<ProposalBrand, BrandConfig> = {
@@ -16,12 +18,14 @@ export const BRANDS: Record<ProposalBrand, BrandConfig> = {
     name: 'Cambridge Studio',
     logo: cambridgeLogo,
     themeClass: 'proposal-theme',
+    logoClass: 'opacity-40',
   },
   ammo: {
     id: 'ammo',
     name: 'Ammo Studio',
     logo: ammoLogo,
     themeClass: 'proposal-theme proposal-theme--ammo',
+    logoClass: '',
   },
 }
 

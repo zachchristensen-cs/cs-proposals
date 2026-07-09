@@ -254,7 +254,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
           <img
             src={brand.logo}
             alt={brand.name}
-            className="h-10 w-auto opacity-40"
+            className={`h-10 w-auto ${brand.logoClass}`}
           />
         </div>
       </div>
