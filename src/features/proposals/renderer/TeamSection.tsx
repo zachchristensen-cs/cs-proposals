@@ -49,11 +49,11 @@ export function TeamSection({ team, editable, onTeamChange }: TeamSectionProps) 
 
   return (
     <section className="mb-12">
-      <h2 className="mb-2 font-serif text-2xl text-[#1A1A1A]">
+      <h2 className="mb-2 font-serif text-2xl text-[var(--p-ink)]">
         Your Team
       </h2>
 
-      <p className="mb-6 text-sm leading-relaxed text-[#4A4A4A]">
+      <p className="mb-6 text-sm leading-relaxed text-[var(--p-body)]">
         {editable ? (
           <EditableText
             value={team.intro}
@@ -86,17 +86,17 @@ export function TeamSection({ team, editable, onTeamChange }: TeamSectionProps) 
                     }}
                   />
                 ) : (
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#D4D0C8] text-xs font-medium text-[#1A1A1A]">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--p-border)] text-xs font-medium text-[var(--p-ink)]">
                     {member.initials}
                   </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-[#1A1A1A]">
+                  <h3 className="text-sm font-medium text-[var(--p-ink)]">
                     {member.name}
                   </h3>
-                  <p className="text-xs text-[#6B6B6B]">{member.role}</p>
+                  <p className="text-xs text-[var(--p-muted)]">{member.role}</p>
                   {member.bio && (
-                    <p className="mt-1 text-sm leading-relaxed text-[#6B6B6B]">
+                    <p className="mt-1 text-sm leading-relaxed text-[var(--p-muted)]">
                       {editable ? (
                         <EditableText
                           value={member.bio}

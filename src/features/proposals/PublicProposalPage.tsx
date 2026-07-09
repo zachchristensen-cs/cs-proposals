@@ -37,20 +37,20 @@ export function PublicProposalPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f2ed]">
-        <p className="text-sm text-[#6B6B6B]">Loading proposal...</p>
+      <div className="proposal-theme flex min-h-screen items-center justify-center bg-[var(--p-bg)]">
+        <p className="text-sm text-[var(--p-muted)]">Loading proposal...</p>
       </div>
     )
   }
 
   if (notFound || !content) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f2ed]">
+      <div className="proposal-theme flex min-h-screen items-center justify-center bg-[var(--p-bg)]">
         <div className="text-center">
-          <h1 className="font-serif text-2xl text-[#1A1A1A]">
+          <h1 className="font-serif text-2xl text-[var(--p-ink)]">
             This proposal doesn't exist or has been removed.
           </h1>
-          <p className="mt-2 text-sm text-[#6B6B6B]">Cambridge Studio</p>
+          <p className="mt-2 text-sm text-[var(--p-muted)]">Cambridge Studio</p>
         </div>
       </div>
     )

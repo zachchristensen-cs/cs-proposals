@@ -9,7 +9,7 @@ import { TotalsSection } from '../renderer/TotalsSection'
 import { PaymentSection } from '../renderer/PaymentSection'
 import { TeamSection } from '../renderer/TeamSection'
 import { NotesSection } from '../renderer/NotesSection'
-import cambridgeLogo from '@/assets/CambridgeStudio Logo.svg'
+import { getBrand, type BrandConfig } from '../renderer/brands'
 
 export interface Slide {
   id: string
@@ -20,27 +20,27 @@ export interface Slide {
 function SectionDivider({ title }: { title: string }) {
   return (
     <section className="flex flex-col items-center justify-center py-16 text-center">
-      <h2 className="font-serif text-3xl text-[#1A1A1A]">{title}</h2>
+      <h2 className="font-serif text-3xl text-[var(--p-ink)]">{title}</h2>
     </section>
   )
 }
 
-function FooterSlide({ contact }: { contact?: ProposalContent['contact'] }) {
+function FooterSlide({ contact, brand }: { contact?: ProposalContent['contact']; brand: BrandConfig }) {
   return (
     <section className="flex flex-col items-center text-center py-8">
       <img
-        src={cambridgeLogo}
-        alt="Cambridge Studio"
+        src={brand.logo}
+        alt={brand.name}
         className="mb-10 h-12 w-auto opacity-40"
       />
-      <h2 className="mb-3 font-serif text-3xl text-[#1A1A1A]">Thank You</h2>
-      <p className="text-sm text-[#6B6B6B]">
+      <h2 className="mb-3 font-serif text-3xl text-[var(--p-ink)]">Thank You</h2>
+      <p className="text-sm text-[var(--p-muted)]">
         We're excited about the opportunity to work together.
       </p>
       {contact && (
         <div className="mt-8 text-sm">
-          <p className="font-medium text-[#1A1A1A]">{contact.name}</p>
-          <p className="text-[#6B6B6B]">{contact.email}</p>
+          <p className="font-medium text-[var(--p-ink)]">{contact.name}</p>
+          <p className="text-[var(--p-muted)]">{contact.email}</p>
         </div>
       )}
     </section>
@@ -50,6 +50,7 @@ function FooterSlide({ contact }: { contact?: ProposalContent['contact'] }) {
 export function useSlides(content: ProposalContent): Slide[] {
   return useMemo(() => {
     const slides: Slide[] = []
+    const brand = getBrand(content.brand)
 
     // ─── Act 1: Introduction & Context ───────────────────────
 
@@ -57,7 +58,7 @@ export function useSlides(content: ProposalContent): Slide[] {
     slides.push({
       id: 'cover',
       label: 'Cover',
-      render: () => <CoverSection cover={content.cover} />,
+      render: () => <CoverSection cover={content.cover} brandName={brand.name} />,
     })
 
     // 2. Opportunity — optional
@@ -165,7 +166,7 @@ export function useSlides(content: ProposalContent): Slide[] {
         label: 'Payment Terms',
         render: () => (
           <>
-            <h2 className="mb-6 font-serif text-2xl text-[#1A1A1A]">
+            <h2 className="mb-6 font-serif text-2xl text-[var(--p-ink)]">
               Payment Terms
             </h2>
             <PaymentSection payment={content.payment} />
@@ -200,7 +201,7 @@ export function useSlides(content: ProposalContent): Slide[] {
     slides.push({
       id: 'footer',
       label: 'Thank You',
-      render: () => <FooterSlide contact={content.contact} />,
+      render: () => <FooterSlide contact={content.contact} brand={brand} />,
     })
 
     return slides

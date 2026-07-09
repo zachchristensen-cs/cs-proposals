@@ -127,11 +127,11 @@ export function PhasesSection({
             <div className="group/item mb-6 flex items-start justify-between">
               <div className="flex items-start gap-4">
                 {!hideNumber && (
-                  <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-[#D4D0C8] text-xs text-[#6B6B6B]">
+                  <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--p-border)] text-xs text-[var(--p-muted)]">
                     {num}
                   </span>
                 )}
-                <h2 className="font-serif text-2xl text-[#1A1A1A]">
+                <h2 className="font-serif text-2xl text-[var(--p-ink)]">
                   {editable ? (
                     <EditableText
                       value={phase.name}
@@ -147,7 +147,7 @@ export function PhasesSection({
                 )}
               </div>
               {!hidePricing && !phase.hide_price && (
-                <span className="flex shrink-0 items-center gap-1.5 font-serif text-2xl text-[#1A1A1A]">
+                <span className="flex shrink-0 items-center gap-1.5 font-serif text-2xl text-[var(--p-accent)]">
                   {editable ? (
                     <EditablePrice
                       value={phase.price ?? phase.subtotal}
@@ -168,7 +168,7 @@ export function PhasesSection({
                 <button
                   type="button"
                   onClick={() => updatePhase(i, { hide_price: false })}
-                  className="shrink-0 self-center text-xs text-[#6B6B6B] underline decoration-[#D4D0C8] underline-offset-2 opacity-0 transition-opacity hover:text-[#1A1A1A] group-hover/item:opacity-100 print:hidden"
+                  className="shrink-0 self-center text-xs text-[var(--p-muted)] underline decoration-[var(--p-border)] underline-offset-2 opacity-0 transition-opacity hover:text-[var(--p-ink)] group-hover/item:opacity-100 print:hidden"
                   title="Price is hidden from the client but still counts toward the total"
                 >
                   Show price
@@ -178,7 +178,7 @@ export function PhasesSection({
 
             {/* Narrative */}
             {phase.narrative && (
-              <p className={`mb-6 text-sm leading-relaxed text-[#4A4A4A] ${hideNumber ? '' : 'pl-11'}`}>
+              <p className={`mb-6 text-sm leading-relaxed text-[var(--p-body)] ${hideNumber ? '' : 'pl-11'}`}>
                 {editable ? (
                   <EditableText
                     value={phase.narrative}
@@ -197,7 +197,7 @@ export function PhasesSection({
                 {phase.groups!.map((group, g) => (
                   <div key={g}>
                     <div className="group/item mb-2 flex items-center gap-2">
-                      <p className="text-sm font-medium text-[#4A4A4A]">
+                      <p className="text-sm font-medium text-[var(--p-body)]">
                         {editable ? (
                           <EditableText
                             value={group.name}
@@ -217,9 +217,9 @@ export function PhasesSection({
                         {group.items.map((item, k) => (
                           <li
                             key={k}
-                            className="group/item flex items-start gap-2.5 text-sm leading-relaxed text-[#4A4A4A]"
+                            className="group/item flex items-start gap-2.5 text-sm leading-relaxed text-[var(--p-body)]"
                           >
-                            <span className="mt-2 block size-1 shrink-0 rounded-full bg-[#4A4A4A]" />
+                            <span className="mt-2 block size-1 shrink-0 rounded-full bg-[var(--p-body)]" />
                             <span className="flex-1">
                               {editable ? (
                                 <EditableText
@@ -254,10 +254,10 @@ export function PhasesSection({
                 {phase.items.map((item, j) => (
                   <div
                     key={j}
-                    className="group/item flex items-start justify-between border-b border-[#D4D0C8] py-3 last:border-b-0"
+                    className="group/item flex items-start justify-between border-b border-[var(--p-border)] py-3 last:border-b-0"
                   >
                     <div className="mr-4 flex-1">
-                      <span className="text-sm font-medium text-[#1A1A1A]">
+                      <span className="text-sm font-medium text-[var(--p-ink)]">
                         {editable ? (
                           <EditableText
                             value={item.name}
@@ -269,7 +269,7 @@ export function PhasesSection({
                         )}
                       </span>
                       {item.description && (
-                        <p className="mt-0.5 text-sm text-[#6B6B6B]">
+                        <p className="mt-0.5 text-sm text-[var(--p-muted)]">
                           {editable ? (
                             <EditableText
                               value={item.description}
@@ -283,7 +283,7 @@ export function PhasesSection({
                       )}
                     </div>
                     {!hidePricing && (
-                      <span className="shrink-0 text-sm text-[#1A1A1A]">
+                      <span className="shrink-0 text-sm text-[var(--p-ink)]">
                         {editable ? (
                           <EditablePrice
                             value={item.price}

@@ -78,7 +78,7 @@ export function EditableText({
       onClick={() => setEditing(true)}
       className={cn(
         'cursor-pointer rounded transition-colors hover:bg-black/5',
-        !value && 'text-[#6B6B6B] italic',
+        !value && 'text-[var(--p-muted)] italic',
         className,
       )}
     >

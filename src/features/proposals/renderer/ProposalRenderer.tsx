@@ -9,7 +9,7 @@ import { MaintenanceSection } from './MaintenanceSection'
 import { TeamSection } from './TeamSection'
 import { NotesSection } from './NotesSection'
 import { RemoveButton } from '../components/RemoveButton'
-import cambridgeLogo from '@/assets/CambridgeStudio Logo.svg'
+import { BRANDS, getBrand } from './brands'
 
 interface ProposalRendererProps {
   content: ProposalContent
@@ -18,6 +18,7 @@ interface ProposalRendererProps {
 }
 
 export function ProposalRenderer({ content, editable, onContentChange }: ProposalRendererProps) {
+  const brand = getBrand(content.brand)
   const hasOpportunity = (content.opportunity?.paragraphs?.length ?? 0) > 0
   const hasPersonas = (content.personas?.items?.length ?? 0) > 0
   const hasPhases = (content.phases?.length ?? 0) > 0
@@ -47,10 +48,34 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
   }
 
   return (
-    <div id="proposal-content" className="min-h-screen bg-[#f5f2ed]">
+    <div id="proposal-content" className={`${brand.themeClass} min-h-screen bg-[var(--p-bg)]`}>
       <div className="mx-auto max-w-3xl px-6 py-10 sm:px-10 sm:py-16">
+        {/* Brand toggle (editor only) */}
+        {editable && onContentChange && (
+          <div className="mb-6 flex items-center justify-end gap-2 print:hidden">
+            <span className="text-sm text-[var(--p-muted)]">Proposal by</span>
+            <div className="flex overflow-hidden rounded-full border border-[var(--p-border)]">
+              {Object.values(BRANDS).map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => onContentChange({ ...content, brand: b.id })}
+                  className={`px-3 py-1 text-xs transition-colors ${
+                    brand.id === b.id
+                      ? 'bg-[var(--p-ink)] text-[var(--p-bg)]'
+                      : 'text-[var(--p-muted)] hover:text-[var(--p-ink)]'
+                  }`}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <CoverSection
           cover={content.cover}
+          brandName={brand.name}
           editable={editable}
           onCoverChange={
             onContentChange
@@ -143,7 +168,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         {/* Toggle to hide/show total + payment sections */}
         {editable && onContentChange && (content.total ?? 0) > 0 && (
           <div className="mb-8 flex items-center justify-end gap-2 print:hidden">
-            <span className="text-sm text-[#6B6B6B]">
+            <span className="text-sm text-[var(--p-muted)]">
               {content.hide_total ? 'Total & payment hidden from client' : 'Hide total & payment'}
             </span>
             <button
@@ -152,7 +177,7 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
               aria-checked={!!content.hide_total}
               onClick={() => onContentChange({ ...content, hide_total: !content.hide_total })}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                content.hide_total ? 'bg-[#1A1A1A]' : 'bg-[#D4D0C8]'
+                content.hide_total ? 'bg-[var(--p-ink)]' : 'bg-[var(--p-border)]'
               }`}
             >
               <span
@@ -221,14 +246,14 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
         )}
 
         {/* Footer */}
-        <div className="proposal-footer flex items-end justify-between border-t border-[#D4D0C8] pt-8">
+        <div className="proposal-footer flex items-end justify-between border-t border-[var(--p-border)] pt-8">
           <div>
-            <p className="text-sm font-medium text-[#1A1A1A]">{content.contact?.name || ''}</p>
-            <p className="text-sm text-[#6B6B6B]">{content.contact?.email || ''}</p>
+            <p className="text-sm font-medium text-[var(--p-ink)]">{content.contact?.name || ''}</p>
+            <p className="text-sm text-[var(--p-muted)]">{content.contact?.email || ''}</p>
           </div>
           <img
-            src={cambridgeLogo}
-            alt="Cambridge Studio"
+            src={brand.logo}
+            alt={brand.name}
             className="h-10 w-auto opacity-40"
           />
         </div>

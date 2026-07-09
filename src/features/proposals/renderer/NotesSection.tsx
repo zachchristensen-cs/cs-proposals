@@ -34,7 +34,7 @@ export function NotesSection({ notes, timingNote, editable, onNotesChange, onTim
 
   return (
     <section className="mb-12">
-      <h2 className="mb-4 font-serif text-2xl text-[#1A1A1A]">
+      <h2 className="mb-4 font-serif text-2xl text-[var(--p-ink)]">
         Notes & Exclusions
       </h2>
 
@@ -42,8 +42,8 @@ export function NotesSection({ notes, timingNote, editable, onNotesChange, onTim
         <div className="group/list mb-6">
           <ul className="space-y-2">
             {notes.items.map((item, i) => (
-              <li key={i} className="group/item flex items-start gap-2.5 text-sm leading-relaxed text-[#4A4A4A]">
-                <span className="mt-2 block size-1 shrink-0 rounded-full bg-[#6B6B6B]" />
+              <li key={i} className="group/item flex items-start gap-2.5 text-sm leading-relaxed text-[var(--p-body)]">
+                <span className="mt-2 block size-1 shrink-0 rounded-full bg-[var(--p-muted)]" />
                 <span className="flex-1">
                   {editable ? (
                     <EditableText
@@ -68,9 +68,9 @@ export function NotesSection({ notes, timingNote, editable, onNotesChange, onTim
       )}
 
       {timingNote && (
-        <div className="group/item border-l-2 border-[#D4D0C8] pl-4">
+        <div className="group/item border-l-2 border-[var(--p-border)] pl-4">
           <div className="flex items-start gap-2">
-            <p className="flex-1 text-sm leading-relaxed text-[#4A4A4A]">
+            <p className="flex-1 text-sm leading-relaxed text-[var(--p-body)]">
               {editable ? (
                 <EditableText
                   value={timingNote}

@@ -29,12 +29,12 @@ export function PersonasSection({ personas, editable, onPersonasChange }: Person
 
   return (
     <section className="mb-12">
-      <h2 className="mb-4 font-serif text-2xl text-[#1A1A1A]">
+      <h2 className="mb-4 font-serif text-2xl text-[var(--p-ink)]">
         Who We're Designing For
       </h2>
 
       {personas.intro && (
-        <p className="mb-6 text-sm leading-relaxed text-[#4A4A4A]">
+        <p className="mb-6 text-sm leading-relaxed text-[var(--p-body)]">
           {editable ? (
             <EditableText
               value={personas.intro}
@@ -51,7 +51,7 @@ export function PersonasSection({ personas, editable, onPersonasChange }: Person
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {personas.items.map((persona, i) => (
             <div key={i} className="group/item relative">
-              <h3 className="mb-1 text-sm font-medium text-[#1A1A1A]">
+              <h3 className="mb-1 text-sm font-medium text-[var(--p-ink)]">
                 {editable ? (
                   <EditableText
                     value={persona.title}
@@ -61,7 +61,7 @@ export function PersonasSection({ personas, editable, onPersonasChange }: Person
                   persona.title
                 )}
               </h3>
-              <p className="text-sm leading-relaxed text-[#6B6B6B]">
+              <p className="text-sm leading-relaxed text-[var(--p-muted)]">
                 {editable ? (
                   <EditableText
                     value={persona.description}

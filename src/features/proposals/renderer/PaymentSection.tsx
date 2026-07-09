@@ -42,7 +42,7 @@ export function PaymentSection({
             className="group/item flex items-baseline justify-between"
           >
             <div className="mr-4">
-              <span className="text-sm font-medium text-[#1A1A1A]">
+              <span className="text-sm font-medium text-[var(--p-ink)]">
                 {editable ? (
                   <EditableText
                     value={term.label}
@@ -53,7 +53,7 @@ export function PaymentSection({
                 )}
               </span>
               {term.description && (
-                <span className="ml-2 text-sm text-[#6B6B6B]">
+                <span className="ml-2 text-sm text-[var(--p-muted)]">
                   {editable ? (
                     <EditableText
                       value={term.description}
@@ -66,7 +66,7 @@ export function PaymentSection({
               )}
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="shrink-0 text-sm text-[#1A1A1A]">
+              <span className="shrink-0 text-sm text-[var(--p-ink)]">
                 {editable ? (
                   <EditablePrice
                     value={term.amount}

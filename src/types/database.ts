@@ -101,6 +101,9 @@ export interface ProposalPersona {
 }
 
 export interface ProposalContent {
+  /** Which agency the proposal is branded as; defaults to Cambridge Studio */
+  brand?: 'cambridge' | 'ammo'
+
   cover: {
     client_name: string
     prepared_for?: string

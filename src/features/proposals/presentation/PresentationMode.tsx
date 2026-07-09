@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ProposalContent } from '@/types/database'
 import { useSlides } from './useSlides'
+import { getBrand } from '../renderer/brands'
 
 interface PresentationModeProps {
   content: ProposalContent
@@ -77,7 +78,7 @@ export function PresentationMode({ content, onClose }: PresentationModeProps) {
   const isLast = currentIndex === slides.length - 1
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-[#f5f2ed]">
+    <div className={`${getBrand(content.brand).themeClass} fixed inset-0 z-[100] bg-[var(--p-bg)]`}>
       {/* Slide content — vertically centered */}
       <div className="flex h-full items-center justify-center px-6 py-16">
         <div className="w-full max-w-3xl max-h-[calc(100vh-8rem)] overflow-y-auto px-6 sm:px-10">
@@ -112,7 +113,7 @@ export function PresentationMode({ content, onClose }: PresentationModeProps) {
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute right-6 top-6 rounded-full p-2 text-[#6B6B6B] transition-colors hover:bg-[#D4D0C8]/50 hover:text-[#1A1A1A]"
+        className="absolute right-6 top-6 rounded-full p-2 text-[var(--p-muted)] transition-colors hover:bg-[var(--p-border)]/50 hover:text-[var(--p-ink)]"
       >
         <X className="size-5" />
       </button>
@@ -120,14 +121,14 @@ export function PresentationMode({ content, onClose }: PresentationModeProps) {
       {/* Arrow hints (visible on hover near edges) */}
       {!isFirst && (
         <div className="pointer-events-none absolute inset-y-0 left-0 flex w-16 items-center justify-center opacity-0 transition-opacity hover:opacity-100 peer-hover:opacity-100">
-          <div className="rounded-full bg-white/60 p-2 text-[#6B6B6B]">
+          <div className="rounded-full bg-white/60 p-2 text-[var(--p-muted)]">
             <ChevronLeft className="size-5" />
           </div>
         </div>
       )}
       {!isLast && (
         <div className="pointer-events-none absolute inset-y-0 right-0 flex w-16 items-center justify-center opacity-0 transition-opacity">
-          <div className="rounded-full bg-white/60 p-2 text-[#6B6B6B]">
+          <div className="rounded-full bg-white/60 p-2 text-[var(--p-muted)]">
             <ChevronRight className="size-5" />
           </div>
         </div>
@@ -147,8 +148,8 @@ export function PresentationMode({ content, onClose }: PresentationModeProps) {
                       className={cn(
                         'rounded-full transition-all duration-200',
                         i === currentIndex
-                          ? 'size-2.5 bg-[#1A1A1A]'
-                          : 'size-1.5 bg-[#D4D0C8] hover:bg-[#6B6B6B]',
+                          ? 'size-2.5 bg-[var(--p-ink)]'
+                          : 'size-1.5 bg-[var(--p-border)] hover:bg-[var(--p-muted)]',
                       )}
                     />
                   </TooltipTrigger>
@@ -161,7 +162,7 @@ export function PresentationMode({ content, onClose }: PresentationModeProps) {
           </TooltipProvider>
 
           {/* Slide counter */}
-          <span className="text-xs tabular-nums text-[#6B6B6B]">
+          <span className="text-xs tabular-nums text-[var(--p-muted)]">
             {currentIndex + 1} / {slides.length}
           </span>
         </div>

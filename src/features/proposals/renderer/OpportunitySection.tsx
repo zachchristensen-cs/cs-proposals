@@ -31,13 +31,13 @@ export function OpportunitySection({
 
   return (
     <section className="mb-12">
-      <h2 className="mb-4 font-serif text-2xl text-[#1A1A1A]">
+      <h2 className="mb-4 font-serif text-2xl text-[var(--p-ink)]">
         The Opportunity
       </h2>
       <div className="group/list space-y-4">
         {opportunity.paragraphs.map((p, i) => (
           <div key={i} className="group/item flex items-start gap-2">
-            <p className="flex-1 text-sm leading-relaxed text-[#4A4A4A]">
+            <p className="flex-1 text-sm leading-relaxed text-[var(--p-body)]">
               {editable ? (
                 <EditableText
                   value={p}

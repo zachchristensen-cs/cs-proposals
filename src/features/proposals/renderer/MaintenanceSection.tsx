@@ -41,16 +41,16 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber, hid
       <div className="mb-6 flex items-start justify-between">
         <div className="flex items-start gap-4">
           {!hideNumber && (
-            <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-[#D4D0C8] text-xs text-[#6B6B6B]">
+            <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--p-border)] text-xs text-[var(--p-muted)]">
               {sectionNumber}
             </span>
           )}
-          <h2 className="font-serif text-2xl text-[#1A1A1A]">
+          <h2 className="font-serif text-2xl text-[var(--p-ink)]">
             Maintenance
           </h2>
         </div>
         {!hidePricing && prices.length >= 2 && (
-          <span className="shrink-0 font-serif text-2xl text-[#1A1A1A]">
+          <span className="shrink-0 font-serif text-2xl text-[var(--p-accent)]">
             + {prices[0]} – {prices[prices.length - 1]}
           </span>
         )}
@@ -61,14 +61,14 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber, hid
         {maintenance.tiers.map((tier, i) => (
           <div key={i} className="group/item flex items-baseline justify-between">
             <div className="flex items-baseline gap-2">
-              <span className="text-sm font-medium text-[#1A1A1A]">
+              <span className="text-sm font-medium text-[var(--p-ink)]">
                 {editable ? (
                   <EditableText value={tier.name} onChange={(v) => updateTier(i, 'name', v)} />
                 ) : (
                   tier.name
                 )}
               </span>
-              <span className="text-sm text-[#6B6B6B]">
+              <span className="text-sm text-[var(--p-muted)]">
                 {editable ? (
                   <EditableText value={tier.summary} onChange={(v) => updateTier(i, 'summary', v)} />
                 ) : (
@@ -78,7 +78,7 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber, hid
             </div>
             <div className="flex items-baseline gap-2">
               {!hidePricing && (
-                <span className="shrink-0 text-sm text-[#1A1A1A]">
+                <span className="shrink-0 text-sm text-[var(--p-ink)]">
                   {editable ? (
                     <EditableText value={tier.price} onChange={(v) => updateTier(i, 'price', v)} />
                   ) : (
@@ -99,7 +99,7 @@ export function MaintenanceSection({ maintenance, sectionNumber, hideNumber, hid
 
       {maintenance.recommendation && (
         <div className={`group/item mt-6 flex items-start gap-2 ${hideNumber ? '' : 'pl-11'}`}>
-          <p className="flex-1 text-sm leading-relaxed text-[#4A4A4A]">
+          <p className="flex-1 text-sm leading-relaxed text-[var(--p-body)]">
             {editable ? (
               <EditableText
                 value={maintenance.recommendation}

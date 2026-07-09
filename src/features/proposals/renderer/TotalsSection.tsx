@@ -10,25 +10,25 @@ export function TotalsSection({ total, paymentNote, maintenanceNote }: TotalsSec
   return (
     <section className="totals-section mb-12">
       {/* Top divider */}
-      <div className="mb-8 border-t border-[#D4D0C8]" />
+      <div className="mb-8 border-t border-[var(--p-border)]" />
 
       <div className="flex items-start justify-between">
-        <p className="font-serif text-2xl text-[#6B6B6B]">Total Estimate</p>
+        <p className="font-serif text-2xl text-[var(--p-muted)]">Total Estimate</p>
         <div className="text-right">
-          <p className="font-serif text-4xl text-[#1A1A1A]">
+          <p className="font-serif text-4xl text-[var(--p-accent)]">
             {formatCurrency(total)}
           </p>
           {paymentNote && (
-            <p className="mt-2 text-sm text-[#6B6B6B]">{paymentNote}</p>
+            <p className="mt-2 text-sm text-[var(--p-muted)]">{paymentNote}</p>
           )}
           {maintenanceNote && (
-            <p className="text-sm text-[#6B6B6B]">{maintenanceNote}</p>
+            <p className="text-sm text-[var(--p-muted)]">{maintenanceNote}</p>
           )}
         </div>
       </div>
 
       {/* Bottom divider */}
-      <div className="mt-8 border-t border-[#D4D0C8]" />
+      <div className="mt-8 border-t border-[var(--p-border)]" />
     </section>
   )
 }

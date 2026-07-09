@@ -26,6 +26,50 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/inter-variable.ttf") format("truetype-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Proposal brand themes ───────────────────────────────────
+   The proposal renderer uses --p-* variables everywhere so the
+   document can be rebranded per proposal. Cambridge Studio is
+   the default; .proposal-theme--ammo overrides for Ammo Studio. */
+.proposal-theme {
+  --p-bg: #f5f2ed;
+  --p-ink: #1a1a1a;
+  --p-body: #4a4a4a;
+  --p-muted: #6b6b6b;
+  --p-border: #d4d0c8;
+  --p-accent: #1a1a1a;
+  --p-heading-font: "Untitled Serif", ui-serif, Georgia, Cambria,
+    "Times New Roman", Times, serif;
+  --p-body-font: "Untitled Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--p-body-font);
+}
+
+.proposal-theme .font-serif {
+  font-family: var(--p-heading-font);
+  letter-spacing: var(--p-heading-tracking, 0);
+  font-weight: var(--p-heading-weight, 400);
+}
+
+.proposal-theme--ammo {
+  --p-bg: #f8f7f5;
+  --p-ink: #02111b;
+  --p-body: #333333;
+  --p-muted: #6b7280;
+  --p-border: #e2ddd3;
+  --p-accent: #396afc;
+  --p-heading-font: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --p-body-font: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --p-heading-tracking: -0.02em;
+  --p-heading-weight: 550;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
