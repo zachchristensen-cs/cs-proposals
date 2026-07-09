@@ -45,7 +45,7 @@ async function getTeamRosterSection(
     const lines = data.map((m, i) => {
       const photo = m.photo_url ? `, photo_url: ${m.photo_url}` : ""
       const bio = m.bio ? `\n   Bio: ${m.bio}` : ""
-      return `${i + 1}. ${m.name} — ${m.role} (initials: ${m.initials}${photo})${bio}`
+      return `${i + 1}. ${m.name} (${m.role}, initials: ${m.initials}${photo})${bio}`
     })
 
     return `\n\n## Team Members
@@ -54,7 +54,7 @@ This roster is managed in the app's Settings and is the single source of truth. 
 
 ${lines.join("\n")}
 
-Use the exact names, roles, initials, and photo_url values as provided — include photo_url on each team member in the JSON when one is listed. Do NOT invent team members. If a bio is provided, use it verbatim; only write a brief bio yourself when none is provided.`
+Use the exact names, roles, initials, and photo_url values as provided, and include photo_url on each team member in the JSON when one is listed. Do NOT invent team members. If a bio is provided, use it verbatim; only write a brief bio yourself when none is provided.`
   } catch (err) {
     console.error("Failed to load team members:", err)
     return ""
@@ -74,7 +74,11 @@ function buildSystemPrompt(
   })
   let prompt =
     productSpec +
-    `\n\nToday's date is ${today}. Always use this as the cover date when generating a new proposal.\n\n`
+    `\n\nToday's date is ${today}. Always use this as the cover date when generating a new proposal.
+
+HARD RULE: Never use em dashes (—) or double hyphens (--) anywhere: not in chat responses and not in any proposal content field (descriptions, narratives, bullets, notes, etc.). Rewrite the sentence with a comma, period, colon, or parentheses instead.
+
+`
 
   if (options.currentContent) {
     prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
@@ -123,7 +127,7 @@ The ProposalContent JSON schema:
   "timing_note?": string
 }
 
-IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value — the total cost for that phase. The "total" field must equal the sum of all phase prices. A phase's "hide_price" only hides the price display next to the phase name — the phase still counts toward "total"; preserve this flag when updating phases.
+IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value: the total cost for that phase. The "total" field must equal the sum of all phase prices. A phase's "hide_price" only hides the price display next to the phase name; the phase still counts toward "total". Preserve this flag when updating phases.
 `
   }
 
