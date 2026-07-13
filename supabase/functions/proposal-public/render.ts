@@ -135,7 +135,11 @@ function renderTeam(team: any, num: number): string {
   const members = team.members
     .map(
       (m: any) => `<div style="display:flex;gap:0.75rem">
-      <div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#D4D0C8;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:500;color:#1A1A1A;flex-shrink:0">${esc(m.initials)}</div>
+      ${
+        m.photo_url
+          ? `<img src="${esc(m.photo_url)}" alt="${esc(m.name)}" style="width:2.5rem;height:2.5rem;border-radius:50%;object-fit:cover;flex-shrink:0;filter:grayscale(100%) contrast(0.85) brightness(1.05)" />`
+          : `<div style="width:2.5rem;height:2.5rem;border-radius:50%;background:#D4D0C8;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:500;color:#1A1A1A;flex-shrink:0">${esc(m.initials)}</div>`
+      }
       <div>
         <h3 style="font-size:0.875rem;font-weight:500;color:#1A1A1A;margin:0">${esc(m.name)}</h3>
         <p style="font-size:0.75rem;color:#6B6B6B;margin:0">${esc(m.role)}</p>
