@@ -78,6 +78,10 @@ function buildSystemPrompt(
 
 HARD RULE: Never use em dashes (—) or double hyphens (--) anywhere: not in chat responses and not in any proposal content field (descriptions, narratives, bullets, notes, etc.). Rewrite the sentence with a comma, period, colon, or parentheses instead.
 
+HARD RULE: Every proposal must include the "team" section, populated with the full roster from the Team Members list, regardless of tier.
+
+HARD RULE: Payment terms are always exactly three installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total.
+
 `
 
   if (options.currentContent) {
