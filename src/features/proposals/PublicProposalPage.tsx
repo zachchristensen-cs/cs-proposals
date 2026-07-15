@@ -3,11 +3,13 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import type { ProposalContent } from '@/types/database'
 import { ProposalRenderer } from './renderer/ProposalRenderer'
+import { SignatureSection } from './renderer/SignatureSection'
 import { useViewTracking } from './hooks/useViewTracking'
 
 export function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>()
   const [content, setContent] = useState<ProposalContent | null>(null)
+  const [signedAt, setSignedAt] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -23,7 +25,7 @@ export function PublicProposalPage() {
     async function load() {
       const { data, error } = await supabase
         .from('proposals')
-        .select('content, client_name')
+        .select('content, client_name, signed_at')
         .eq('slug', slug!)
         .single()
 
@@ -31,6 +33,7 @@ export function PublicProposalPage() {
         setNotFound(true)
       } else {
         setContent(data.content as ProposalContent)
+        setSignedAt((data as { signed_at?: string | null }).signed_at ?? null)
       }
       setLoading(false)
     }
@@ -59,5 +62,10 @@ export function PublicProposalPage() {
     )
   }
 
-  return <ProposalRenderer content={content} />
+  return (
+    <>
+      <ProposalRenderer content={content} />
+      <SignatureSection slug={slug!} brand={content.brand} signedAt={signedAt} />
+    </>
+  )
 }

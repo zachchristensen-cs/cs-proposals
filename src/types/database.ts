@@ -47,7 +47,7 @@ export interface AgencyTeamMember {
 
 // ─── Proposals ──────────────────────────────────────────────
 
-export type ProposalStatus = 'draft' | 'sent' | 'archived'
+export type ProposalStatus = 'draft' | 'sent' | 'signed' | 'archived'
 export type ProposalTier = 1 | 2 | 3
 
 export interface ProposalLineItem {
@@ -157,6 +157,7 @@ export interface Proposal {
   id: string
   slug: string
   status: ProposalStatus
+  signed_at?: string | null
   tier: ProposalTier | null
   client_name: string | null
   client_contact: string | null
@@ -216,4 +217,20 @@ export interface ProposalView {
   duration_seconds: number
   max_scroll_pct: number
   sections_viewed: string[]
+}
+
+export interface ProposalSignature {
+  id: string
+  proposal_id: string
+  recipient_id: string | null
+  first_name: string
+  last_name: string
+  email: string
+  signature_type: 'typed' | 'drawn'
+  signature_data: string
+  consent: boolean
+  ip: string | null
+  user_agent: string | null
+  signed_at: string
+  content_snapshot: ProposalContent
 }
