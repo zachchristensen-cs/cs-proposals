@@ -186,6 +186,8 @@ Deno.serve(async (req) => {
   const clientName: string = proposal.client_name || content.cover?.client_name || ""
   const signerName = `${firstName} ${lastName}`
 
+  const origin = req.headers.get("origin") || Deno.env.get("APP_URL") || ""
+
   let stripeResult: StripeResult | null = null
   let stripeSummary = ""
   try {
@@ -198,8 +200,9 @@ Deno.serve(async (req) => {
         signerName,
         monthlyAmount: monthly,
         proposalSlug: proposal.slug,
+        origin,
       })
-      stripeSummary = `Stripe: monthly retainer subscription created ($${stripeResult.amount.toLocaleString()}/mo), first invoice sent.`
+      stripeSummary = `Stripe: monthly retainer checkout started ($${stripeResult.amount.toLocaleString()}/mo).`
     } else {
       // deno-lint-ignore no-explicit-any
       const terms = (Array.isArray(content.payment?.terms) ? content.payment.terms : []).map(
@@ -213,14 +216,16 @@ Deno.serve(async (req) => {
         signerName,
         terms,
         proposalSlug: proposal.slug,
+        origin,
       })
-      stripeSummary = `Stripe: "${stripeResult.label}" invoice sent ($${stripeResult.amount.toLocaleString()}).`
+      stripeSummary = `Stripe: "${stripeResult.label}" checkout created ($${stripeResult.amount.toLocaleString()}).`
     }
 
     await supabase.from("proposal_payments").insert({
       proposal_id: proposal.id,
       brand,
       stripe_customer_id: stripeResult.customerId,
+      stripe_checkout_session_id: stripeResult.sessionId ?? null,
       stripe_invoice_id: stripeResult.invoiceId ?? null,
       stripe_subscription_id: stripeResult.subscriptionId ?? null,
       label: stripeResult.label,

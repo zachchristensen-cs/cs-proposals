@@ -1,6 +1,7 @@
-// Minimal Stripe REST helpers (no SDK). Uses the platform secret key and,
-// when configured, routes to the brand's connected account via the
-// Stripe-Account header:
+// Stripe Checkout helpers (REST, no SDK). Signing flows straight into a
+// Checkout session: projects pay the first installment immediately;
+// retainers start a monthly subscription. Uses the platform secret key and,
+// when configured, routes to the brand's connected account:
 //   STRIPE_SECRET_KEY            - platform secret key (required)
 //   STRIPE_ACCOUNT_CAMBRIDGE     - optional acct_... connected account id
 //   STRIPE_ACCOUNT_AMMO          - optional acct_... connected account id
@@ -13,8 +14,10 @@ interface PaymentTerm {
 
 export interface StripeResult {
   customerId: string
-  invoiceId?: string
+  sessionId?: string
   subscriptionId?: string
+  invoiceId?: string
+  /** Checkout URL the signer is sent to right after signing */
   hostedInvoiceUrl?: string
   label: string
   amount: number
@@ -59,8 +62,8 @@ async function stripeRequest(
 }
 
 /**
- * Project proposals: create + send a Stripe invoice for the FIRST payment
- * installment (e.g. "Kickoff - 50%"). Later installments are invoiced when due.
+ * Project proposals: Checkout session for the FIRST payment installment
+ * (e.g. "Kickoff - 50%"). Later installments are invoiced when due.
  */
 export async function createFirstInstallmentInvoice(opts: {
   brand: string
@@ -69,6 +72,7 @@ export async function createFirstInstallmentInvoice(opts: {
   signerName: string
   terms: PaymentTerm[]
   proposalSlug: string
+  origin: string
 }): Promise<StripeResult> {
   const first = opts.terms[0]
   if (!first || !(first.amount > 0)) throw new Error("No payment terms with an amount")
@@ -80,39 +84,32 @@ export async function createFirstInstallmentInvoice(opts: {
     "metadata[signer_name]": opts.signerName,
   }, opts.brand)
 
-  const invoice = await stripeRequest("/invoices", {
+  const session = await stripeRequest("/checkout/sessions", {
+    mode: "payment",
     customer: customer.id,
-    collection_method: "send_invoice",
-    days_until_due: "7",
-    description: `${opts.clientName} - ${first.label}`,
+    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][unit_amount]": String(Math.round(first.amount * 100)),
+    "line_items[0][price_data][product_data][name]": `${opts.clientName} - ${first.label}`,
+    "line_items[0][quantity]": "1",
+    "invoice_creation[enabled]": "true",
+    success_url: `${opts.origin}/p/${opts.proposalSlug}?payment=success`,
+    cancel_url: `${opts.origin}/p/${opts.proposalSlug}?payment=cancelled`,
     "metadata[proposal_slug]": opts.proposalSlug,
     "metadata[installment]": first.label,
-    auto_advance: "true",
   }, opts.brand)
-
-  await stripeRequest("/invoiceitems", {
-    customer: customer.id,
-    invoice: invoice.id,
-    amount: String(Math.round(first.amount * 100)),
-    currency: "usd",
-    description: `${first.label}${first.description ? ` - ${first.description}` : ""}`,
-  }, opts.brand)
-
-  const finalized = await stripeRequest(`/invoices/${invoice.id}/finalize`, {}, opts.brand)
-  await stripeRequest(`/invoices/${invoice.id}/send`, {}, opts.brand)
 
   return {
     customerId: customer.id,
-    invoiceId: invoice.id,
-    hostedInvoiceUrl: finalized.hosted_invoice_url,
+    sessionId: session.id,
+    hostedInvoiceUrl: session.url,
     label: first.label,
     amount: first.amount,
   }
 }
 
 /**
- * Retainer proposals: create an invoice-based monthly subscription for the
- * full recurring amount. Stripe emails an invoice each cycle.
+ * Retainer proposals: Checkout session that starts a monthly subscription
+ * for the full recurring amount.
  */
 export async function createRetainerSubscription(opts: {
   brand: string
@@ -121,6 +118,7 @@ export async function createRetainerSubscription(opts: {
   signerName: string
   monthlyAmount: number
   proposalSlug: string
+  origin: string
 }): Promise<StripeResult> {
   if (!(opts.monthlyAmount > 0)) throw new Error("No retainer amount")
 
@@ -130,39 +128,23 @@ export async function createRetainerSubscription(opts: {
     "metadata[proposal_slug]": opts.proposalSlug,
   }, opts.brand)
 
-  const product = await stripeRequest("/products", {
-    name: `${opts.clientName} - Monthly Retainer`,
-    "metadata[proposal_slug]": opts.proposalSlug,
-  }, opts.brand)
-
-  const price = await stripeRequest("/prices", {
-    product: product.id,
-    unit_amount: String(Math.round(opts.monthlyAmount * 100)),
-    currency: "usd",
-    "recurring[interval]": "month",
-  }, opts.brand)
-
-  const subscription = await stripeRequest("/subscriptions", {
+  const session = await stripeRequest("/checkout/sessions", {
+    mode: "subscription",
     customer: customer.id,
-    "items[0][price]": price.id,
-    collection_method: "send_invoice",
-    days_until_due: "7",
+    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][unit_amount]": String(Math.round(opts.monthlyAmount * 100)),
+    "line_items[0][price_data][recurring][interval]": "month",
+    "line_items[0][price_data][product_data][name]": `${opts.clientName} - Monthly Retainer`,
+    "line_items[0][quantity]": "1",
+    success_url: `${opts.origin}/p/${opts.proposalSlug}?payment=success`,
+    cancel_url: `${opts.origin}/p/${opts.proposalSlug}?payment=cancelled`,
     "metadata[proposal_slug]": opts.proposalSlug,
   }, opts.brand)
-
-  let hostedInvoiceUrl: string | undefined
-  let invoiceId: string | undefined
-  if (subscription.latest_invoice) {
-    invoiceId = subscription.latest_invoice
-    const invoice = await stripeRequest(`/invoices/${subscription.latest_invoice}`, {}, opts.brand, "GET")
-    hostedInvoiceUrl = invoice.hosted_invoice_url
-  }
 
   return {
     customerId: customer.id,
-    subscriptionId: subscription.id,
-    invoiceId,
-    hostedInvoiceUrl,
+    sessionId: session.id,
+    hostedInvoiceUrl: session.url,
     label: "Monthly Retainer",
     amount: opts.monthlyAmount,
   }

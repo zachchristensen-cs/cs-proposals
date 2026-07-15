@@ -124,7 +124,13 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
         return
       }
       setJustSigned(data?.signed_at || new Date().toISOString())
-      if (data?.payment_url) setPaymentUrl(data.payment_url)
+      if (data?.payment_url) {
+        setPaymentUrl(data.payment_url)
+        // Signing acts as checkout: send them straight to payment
+        setTimeout(() => {
+          window.location.href = data.payment_url
+        }, 1500)
+      }
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -157,16 +163,14 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
               {paymentUrl && (
                 <a
                   href={paymentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="mt-4 inline-block rounded-md bg-[var(--p-ink)] px-8 py-2.5 text-sm font-medium text-[var(--p-bg)] transition-opacity hover:opacity-90"
                 >
-                  Proceed to Payment
+                  Continue to Checkout
                 </a>
               )}
               {paymentUrl && (
                 <p className="mt-2 text-xs text-[var(--p-muted)]">
-                  An invoice has also been emailed to you.
+                  Taking you to secure payment...
                 </p>
               )}
             </div>
