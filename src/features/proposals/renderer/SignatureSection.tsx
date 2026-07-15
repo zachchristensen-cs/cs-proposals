@@ -8,9 +8,13 @@ interface SignatureSectionProps {
   slug: string
   brand?: string
   signedAt: string | null
+  /** itemKey()s of optional items the viewer turned off; sent with the signature */
+  deselected?: Set<string>
+  /** Adjusted total shown next to the sign button */
+  total?: number
 }
 
-export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProps) {
+export function SignatureSection({ slug, brand, signedAt, deselected, total }: SignatureSectionProps) {
   const brandConfig = getBrand(brand)
   const [mode, setMode] = useState<'typed' | 'drawn'>('typed')
   const [firstName, setFirstName] = useState('')
@@ -111,6 +115,7 @@ export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProp
           signature_type: mode,
           signature_data: signatureData,
           consent: true,
+          deselected_items: deselected ? Array.from(deselected) : [],
         }),
       })
       const data = await res.json().catch(() => null)
@@ -270,7 +275,11 @@ export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProp
                 disabled={submitting}
                 className="w-full rounded-md bg-[var(--p-ink)] px-4 py-2.5 text-sm font-medium text-[var(--p-bg)] transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto sm:px-8"
               >
-                {submitting ? 'Signing...' : 'Sign & Accept Proposal'}
+                {submitting
+                  ? 'Signing...'
+                  : total && total > 0
+                    ? `Sign & Accept - ${'$'}${total.toLocaleString()}`
+                    : 'Sign & Accept Proposal'}
               </button>
 
               <p className="text-xs text-[var(--p-muted)]">

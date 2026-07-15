@@ -54,6 +54,8 @@ export interface ProposalLineItem {
   name: string
   description: string
   price: number
+  /** Client can toggle this item on/off on the public proposal page */
+  optional?: boolean
 }
 
 export interface ProposalPhaseGroup {
@@ -100,9 +102,26 @@ export interface ProposalPersona {
   description: string
 }
 
+export interface ProposalDiscount {
+  label: string
+  /** Fixed dollar amount off */
+  amount?: number
+  /** Percentage off the subtotal (0-100); used when amount is not set */
+  percent?: number
+}
+
 export interface ProposalContent {
   /** Which agency the proposal is branded as; defaults to Cambridge Studio */
   brand?: 'cambridge' | 'ammo'
+
+  /** project = 50/25/25 installments; retainer = full recurring amount */
+  proposal_type?: 'project' | 'retainer'
+
+  /** Monthly amount for retainer proposals; defaults to total */
+  retainer_amount?: number
+
+  /** Discounts subtracted from the subtotal on the public page and invoices */
+  discounts?: ProposalDiscount[]
 
   cover: {
     client_name: string

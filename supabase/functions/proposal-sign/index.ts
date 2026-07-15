@@ -26,6 +26,50 @@ function json(body: unknown, status = 200): Response {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Ported from src/features/proposals/lib/selection.ts - keep in sync.
+// deno-lint-ignore no-explicit-any
+function computeAdjustedTotals(content: any, deselected: Set<string>) {
+  let subtotal = 0
+  // deno-lint-ignore no-explicit-any
+  ;(content.phases ?? []).forEach((phase: any, pi: number) => {
+    const items = phase.items ?? []
+    // deno-lint-ignore no-explicit-any
+    const priced = items.filter((it: any) => it.price > 0)
+    if (priced.length > 0) {
+      // deno-lint-ignore no-explicit-any
+      items.forEach((item: any, ii: number) => {
+        if (item.optional && deselected.has(`${pi}:${ii}`)) return
+        subtotal += item.price || 0
+      })
+    } else {
+      subtotal += phase.price ?? phase.subtotal ?? 0
+    }
+  })
+
+  let discountTotal = 0
+  for (const d of content.discounts ?? []) {
+    if (d.amount && d.amount > 0) discountTotal += d.amount
+    else if (d.percent && d.percent > 0) discountTotal += Math.round((subtotal * d.percent) / 100)
+  }
+  discountTotal = Math.min(discountTotal, subtotal)
+  const total = subtotal - discountTotal
+
+  const terms = content.payment?.terms ?? []
+  // deno-lint-ignore no-explicit-any
+  const originalSum = terms.reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
+  let allocated = 0
+  // deno-lint-ignore no-explicit-any
+  const termAmounts = terms.map((t: any, i: number) => {
+    if (i === terms.length - 1) return Math.max(0, total - allocated)
+    const ratio = originalSum > 0 ? (t.amount || 0) / originalSum : 1 / (terms.length || 1)
+    const amt = Math.round(total * ratio)
+    allocated += amt
+    return amt
+  })
+
+  return { subtotal, discountTotal, total, termAmounts }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders })
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
@@ -89,6 +133,12 @@ Deno.serve(async (req) => {
     recipientId = recipient?.id ?? null
   }
 
+  const deselectedItems: string[] = Array.isArray(body.deselected_items)
+    ? body.deselected_items.slice(0, 200).map((k: unknown) => String(k).slice(0, 20))
+    : []
+  const deselected = new Set(deselectedItems)
+  const adjusted = computeAdjustedTotals(proposal.content ?? {}, deselected)
+
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
   const userAgent = req.headers.get("user-agent")
 
@@ -105,7 +155,15 @@ Deno.serve(async (req) => {
       consent: true,
       ip,
       user_agent: userAgent,
-      content_snapshot: proposal.content,
+      content_snapshot: {
+        ...proposal.content,
+        _signing: {
+          deselected_items: deselectedItems,
+          subtotal: adjusted.subtotal,
+          discount_total: adjusted.discountTotal,
+          total: adjusted.total,
+        },
+      },
     })
     .select("id, signed_at")
     .single()
@@ -131,7 +189,7 @@ Deno.serve(async (req) => {
   let stripeSummary = ""
   try {
     if (content.proposal_type === "retainer") {
-      const monthly = Number(content.retainer_amount ?? content.total ?? 0)
+      const monthly = Number(content.retainer_amount ?? adjusted.total ?? content.total ?? 0)
       stripeResult = await createRetainerSubscription({
         brand,
         clientName,
@@ -142,7 +200,11 @@ Deno.serve(async (req) => {
       })
       stripeSummary = `Stripe: monthly retainer subscription created ($${stripeResult.amount.toLocaleString()}/mo), first invoice sent.`
     } else {
-      const terms = Array.isArray(content.payment?.terms) ? content.payment.terms : []
+      // deno-lint-ignore no-explicit-any
+      const terms = (Array.isArray(content.payment?.terms) ? content.payment.terms : []).map(
+        // deno-lint-ignore no-explicit-any
+        (t: any, i: number) => ({ ...t, amount: adjusted.termAmounts[i] ?? t.amount }),
+      )
       stripeResult = await createFirstInstallmentInvoice({
         brand,
         clientName,

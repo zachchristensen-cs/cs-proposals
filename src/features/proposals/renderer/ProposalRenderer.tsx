@@ -10,15 +10,25 @@ import { TeamSection } from './TeamSection'
 import { NotesSection } from './NotesSection'
 import { RemoveButton } from '../components/RemoveButton'
 import { BRANDS, getBrand } from './brands'
+import { computeAdjustedTotals } from '../lib/selection'
 
 interface ProposalRendererProps {
   content: ProposalContent
   editable?: boolean
   onContentChange?: (content: ProposalContent) => void
+  /** Public page: optional items get checkboxes and totals react to selection */
+  selectable?: boolean
+  deselected?: Set<string>
+  onToggleItem?: (key: string) => void
 }
 
-export function ProposalRenderer({ content, editable, onContentChange }: ProposalRendererProps) {
+export function ProposalRenderer({ content, editable, onContentChange, selectable, deselected, onToggleItem }: ProposalRendererProps) {
   const brand = getBrand(content.brand)
+  const isRetainer = content.proposal_type === 'retainer'
+  const adjusted = computeAdjustedTotals(content, deselected ?? new Set())
+  const displayTotal = isRetainer
+    ? (content.retainer_amount ?? adjusted.total)
+    : adjusted.total
   const hasOpportunity = (content.opportunity?.paragraphs?.length ?? 0) > 0
   const hasPersonas = (content.personas?.items?.length ?? 0) > 0
   const hasPhases = (content.phases?.length ?? 0) > 0
@@ -28,9 +38,11 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
   const hasNotes = (content.notes?.items?.length ?? 0) > 0 || content.timing_note
 
   // Build payment note string for the totals section
-  const paymentNote = hasPayment
-    ? content.payment!.terms.map((t) => t.label).join(' & ').replace(/&([^&]*)$/, '& $1') || undefined
-    : undefined
+  const paymentNote = isRetainer
+    ? 'Billed monthly'
+    : hasPayment
+      ? content.payment!.terms.map((t) => t.label).join(' & ').replace(/&([^&]*)$/, '& $1') || undefined
+      : undefined
 
   // Numbered sections: phases start at 1, maintenance follows after
   const phaseScopeStart = 1
@@ -50,9 +62,37 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
   return (
     <div id="proposal-content" className={`${brand.themeClass} min-h-screen bg-[var(--p-bg)]`}>
       <div className="mx-auto max-w-3xl px-6 py-10 sm:px-10 sm:py-16">
-        {/* Brand toggle (editor only) */}
+        {/* Brand + proposal type toggles (editor only) */}
         {editable && onContentChange && (
           <div className="mb-6 flex items-center justify-end gap-2 print:hidden">
+            <div className="mr-4 flex items-center gap-2">
+              <span className="text-sm text-[var(--p-muted)]">Type</span>
+              <div className="flex overflow-hidden rounded-full border border-[var(--p-border)]">
+                {(['project', 'retainer'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() =>
+                      onContentChange({
+                        ...content,
+                        proposal_type: t,
+                        retainer_amount:
+                          t === 'retainer'
+                            ? (content.retainer_amount ?? content.total)
+                            : content.retainer_amount,
+                      })
+                    }
+                    className={`px-3 py-1 text-xs capitalize transition-colors ${
+                      (content.proposal_type ?? 'project') === t
+                        ? 'bg-[var(--p-ink)] text-[var(--p-bg)]'
+                        : 'text-[var(--p-muted)] hover:text-[var(--p-ink)]'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
             <span className="text-sm text-[var(--p-muted)]">Proposal by</span>
             <div className="flex overflow-hidden rounded-full border border-[var(--p-border)]">
               {Object.values(BRANDS).map((b) => (
@@ -128,6 +168,9 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
               phases={content.phases}
               sectionNumber={phaseScopeStart}
               editable={editable}
+              selectable={selectable}
+              deselected={deselected}
+              onToggleItem={onToggleItem}
               onPhasesChange={
                 onContentChange
                   ? (phases) => onContentChange({ ...content, phases })
@@ -159,9 +202,19 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
 
         {(content.total ?? 0) > 0 && !content.hide_total && (
           <TotalsSection
-            total={content.total}
+            total={displayTotal}
+            isRetainer={isRetainer}
+            subtotal={adjusted.subtotal}
+            discounts={content.discounts}
+            discountTotal={adjusted.discountTotal}
             paymentNote={paymentNote}
             maintenanceNote={hasMaintenance ? '+ Maintenance after launch' : undefined}
+            editable={editable}
+            onDiscountsChange={
+              onContentChange
+                ? (discounts) => onContentChange({ ...content, discounts })
+                : undefined
+            }
           />
         )}
 
@@ -189,10 +242,11 @@ export function ProposalRenderer({ content, editable, onContentChange }: Proposa
           </div>
         )}
 
-        {hasPayment && !content.hide_total && (
+        {hasPayment && !content.hide_total && !isRetainer && (
           <PaymentSection
             payment={content.payment}
             editable={editable}
+            computedAmounts={selectable ? adjusted.termAmounts : undefined}
             onPaymentChange={
               onContentChange
                 ? (payment) => onContentChange({ ...content, payment })

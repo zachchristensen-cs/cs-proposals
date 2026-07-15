@@ -8,12 +8,15 @@ import { AddButton } from '../components/AddButton'
 interface PaymentSectionProps {
   payment: ProposalContent['payment']
   editable?: boolean
+  /** Public page: amounts recomputed from the viewer's selections (same order as terms) */
+  computedAmounts?: number[]
   onPaymentChange?: (payment: ProposalContent['payment']) => void
 }
 
 export function PaymentSection({
   payment,
   editable,
+  computedAmounts,
   onPaymentChange,
 }: PaymentSectionProps) {
   function updateTerm(index: number, field: string, value: string | number) {
@@ -73,7 +76,7 @@ export function PaymentSection({
                     onChange={(v) => updateTerm(i, 'amount', v)}
                   />
                 ) : (
-                  formatCurrency(term.amount)
+                  formatCurrency(computedAmounts?.[i] ?? term.amount)
                 )}
               </span>
               {editable && onPaymentChange && (

@@ -1,4 +1,5 @@
 import type { ProposalPhase } from '@/types/database'
+import { itemKey } from '../lib/selection'
 import { formatCurrency } from '../lib/formatCurrency'
 import { EditableText } from '../components/EditableText'
 import { EditablePrice } from '../components/EditablePrice'
@@ -12,6 +13,11 @@ interface PhasesSectionProps {
   hideNumber?: boolean
   hidePricing?: boolean
   onPhasesChange?: (phases: ProposalPhase[]) => void
+  /** Public page: render optional items with checkboxes */
+  selectable?: boolean
+  /** itemKey()s of optional items the viewer has turned off */
+  deselected?: Set<string>
+  onToggleItem?: (key: string) => void
 }
 
 export function PhasesSection({
@@ -21,6 +27,9 @@ export function PhasesSection({
   hideNumber,
   hidePricing,
   onPhasesChange,
+  selectable,
+  deselected,
+  onToggleItem,
 }: PhasesSectionProps) {
   function updatePhase(phaseIndex: number, updates: Partial<ProposalPhase>) {
     const updated = phases.map((p, i) => (i === phaseIndex ? { ...p, ...updates } : p))
@@ -82,6 +91,14 @@ export function PhasesSection({
     const phase = phases[phaseIndex]
     const items = phase.items.map((item, j) =>
       j === itemIndex ? { ...item, [field]: value } : item,
+    )
+    updatePhase(phaseIndex, { items })
+  }
+
+  function toggleLineItemOptional(phaseIndex: number, itemIndex: number) {
+    const phase = phases[phaseIndex]
+    const items = phase.items.map((item, j) =>
+      j === itemIndex ? { ...item, optional: !item.optional } : item,
     )
     updatePhase(phaseIndex, { items })
   }
@@ -251,11 +268,23 @@ export function PhasesSection({
             {/* Line items format (Tier 2/3 with individual pricing) */}
             {!hasGroups && hasLineItems && (
               <div className={`group/list ${hideNumber ? '' : 'pl-11'}`}>
-                {phase.items.map((item, j) => (
+                {phase.items.map((item, j) => {
+                  const key = itemKey(i, j)
+                  const isOff = !!(item.optional && deselected?.has(key))
+                  return (
                   <div
                     key={j}
-                    className="group/item flex items-start justify-between border-b border-[var(--p-border)] py-3 last:border-b-0"
+                    className={`group/item flex items-start justify-between border-b border-[var(--p-border)] py-3 last:border-b-0 ${isOff ? 'opacity-45' : ''}`}
                   >
+                    {selectable && item.optional && (
+                      <input
+                        type="checkbox"
+                        checked={!isOff}
+                        onChange={() => onToggleItem?.(key)}
+                        className="mr-3 mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--p-ink)]"
+                        aria-label={`Include ${item.name}`}
+                      />
+                    )}
                     <div className="mr-4 flex-1">
                       <span className="text-sm font-medium text-[var(--p-ink)]">
                         {editable ? (
@@ -268,6 +297,9 @@ export function PhasesSection({
                           item.name
                         )}
                       </span>
+                      {item.optional && !selectable && (
+                        <span className="ml-2 text-xs uppercase tracking-wide text-[var(--p-muted)]">Optional</span>
+                      )}
                       {item.description && (
                         <p className="mt-0.5 text-sm text-[var(--p-muted)]">
                           {editable ? (
@@ -295,10 +327,23 @@ export function PhasesSection({
                       </span>
                     )}
                     {editable && onPhasesChange && (
-                      <RemoveButton onRemove={() => removeLineItem(i, j)} title="Remove item" className="ml-2" />
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toggleLineItemOptional(i, j)}
+                          className={`ml-2 shrink-0 text-xs opacity-0 transition-opacity group-hover/item:opacity-100 print:hidden ${
+                            item.optional ? 'text-[var(--p-accent)]' : 'text-[var(--p-muted)]'
+                          }`}
+                          title={item.optional ? 'Client can toggle this item. Click to make required.' : 'Click to let the client toggle this item on/off'}
+                        >
+                          {item.optional ? 'Optional ✓' : 'Make optional'}
+                        </button>
+                        <RemoveButton onRemove={() => removeLineItem(i, j)} title="Remove item" className="ml-2" />
+                      </>
                     )}
                   </div>
-                ))}
+                  )
+                })}
                 {editable && onPhasesChange && (
                   <AddButton onAdd={() => addLineItem(i)} label="Add line item" />
                 )}

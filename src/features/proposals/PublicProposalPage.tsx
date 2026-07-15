@@ -1,19 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import type { ProposalContent } from '@/types/database'
 import { ProposalRenderer } from './renderer/ProposalRenderer'
 import { SignatureSection } from './renderer/SignatureSection'
 import { useViewTracking } from './hooks/useViewTracking'
+import { computeAdjustedTotals, hasSelectableItems } from './lib/selection'
 
 export function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>()
   const [content, setContent] = useState<ProposalContent | null>(null)
   const [signedAt, setSignedAt] = useState<string | null>(null)
+  const [deselected, setDeselected] = useState<Set<string>>(new Set())
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useViewTracking(slug, !loading && !notFound && !!content)
+
+  const adjustedTotal = useMemo(() => {
+    if (!content) return 0
+    if (content.proposal_type === 'retainer') return content.retainer_amount ?? content.total
+    return computeAdjustedTotals(content, deselected).total
+  }, [content, deselected])
 
   useEffect(() => {
     if (!slug) {
@@ -64,8 +72,26 @@ export function PublicProposalPage() {
 
   return (
     <>
-      <ProposalRenderer content={content} />
-      <SignatureSection slug={slug!} brand={content.brand} signedAt={signedAt} />
+      <ProposalRenderer
+        content={content}
+        selectable={!signedAt && hasSelectableItems(content)}
+        deselected={deselected}
+        onToggleItem={(key) =>
+          setDeselected((prev) => {
+            const next = new Set(prev)
+            if (next.has(key)) next.delete(key)
+            else next.add(key)
+            return next
+          })
+        }
+      />
+      <SignatureSection
+        slug={slug!}
+        brand={content.brand}
+        signedAt={signedAt}
+        deselected={deselected}
+        total={adjustedTotal}
+      />
     </>
   )
 }
