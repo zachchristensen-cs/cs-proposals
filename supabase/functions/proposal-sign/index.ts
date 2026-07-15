@@ -1,5 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { createFirstInstallmentInvoice, createRetainerSubscription, type StripeResult } from "./stripe.ts"
+import { markDealClosedWon } from "./attio.ts"
 
 // Public signing endpoint for proposals. Deployed with --no-verify-jwt.
 // POST {
@@ -118,9 +120,73 @@ Deno.serve(async (req) => {
     .update({ status: "signed", signed_at: signature.signed_at })
     .eq("id", proposal.id)
 
-  await notifySigned(supabase, proposal, { firstName, lastName, email })
+  // ─── Phase 4 chain: Stripe invoice + Attio closed-won ───────
+  // deno-lint-ignore no-explicit-any
+  const content: any = proposal.content ?? {}
+  const brand: string = content.brand === "ammo" ? "ammo" : "cambridge"
+  const clientName: string = proposal.client_name || content.cover?.client_name || ""
+  const signerName = `${firstName} ${lastName}`
 
-  return json({ ok: true, signed_at: signature.signed_at })
+  let stripeResult: StripeResult | null = null
+  let stripeSummary = ""
+  try {
+    if (content.proposal_type === "retainer") {
+      const monthly = Number(content.retainer_amount ?? content.total ?? 0)
+      stripeResult = await createRetainerSubscription({
+        brand,
+        clientName,
+        signerEmail: email,
+        signerName,
+        monthlyAmount: monthly,
+        proposalSlug: proposal.slug,
+      })
+      stripeSummary = `Stripe: monthly retainer subscription created ($${stripeResult.amount.toLocaleString()}/mo), first invoice sent.`
+    } else {
+      const terms = Array.isArray(content.payment?.terms) ? content.payment.terms : []
+      stripeResult = await createFirstInstallmentInvoice({
+        brand,
+        clientName,
+        signerEmail: email,
+        signerName,
+        terms,
+        proposalSlug: proposal.slug,
+      })
+      stripeSummary = `Stripe: "${stripeResult.label}" invoice sent ($${stripeResult.amount.toLocaleString()}).`
+    }
+
+    await supabase.from("proposal_payments").insert({
+      proposal_id: proposal.id,
+      brand,
+      stripe_customer_id: stripeResult.customerId,
+      stripe_invoice_id: stripeResult.invoiceId ?? null,
+      stripe_subscription_id: stripeResult.subscriptionId ?? null,
+      label: stripeResult.label,
+      amount: stripeResult.amount,
+      hosted_invoice_url: stripeResult.hostedInvoiceUrl ?? null,
+      status: "sent",
+    })
+  } catch (err) {
+    console.error("Stripe error:", err)
+    stripeSummary = `Stripe invoice FAILED: ${err instanceof Error ? err.message : "unknown error"}. Create it manually.`
+  }
+
+  const publicUrl = `${Deno.env.get("APP_URL") || ""}/p/${proposal.slug}`
+  const attio = await markDealClosedWon({
+    signerEmail: email,
+    clientName,
+    proposalUrl: publicUrl,
+  })
+  if (attio.dealId) {
+    await supabase.from("proposals").update({ attio_deal_id: attio.dealId }).eq("id", proposal.id)
+  }
+
+  await notifySigned(supabase, proposal, { firstName, lastName, email }, [stripeSummary, attio.summary])
+
+  return json({
+    ok: true,
+    signed_at: signature.signed_at,
+    payment_url: stripeResult?.hostedInvoiceUrl ?? null,
+  })
 })
 
 async function notifySigned(
@@ -128,6 +194,7 @@ async function notifySigned(
   supabase: any,
   proposal: { id: string; slug: string; client_name: string | null },
   signer: { firstName: string; lastName: string; email: string },
+  extras: string[] = [],
 ) {
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY")
@@ -158,6 +225,8 @@ async function notifySigned(
         subject: `Proposal SIGNED: ${client}`,
         text: [
           `${signer.firstName} ${signer.lastName} (${signer.email}) just signed the ${client} proposal.`,
+          "",
+          ...extras.filter(Boolean),
           "",
           appUrl ? `Open it: ${appUrl}/proposals/${proposal.id}` : "",
         ].join("\n"),

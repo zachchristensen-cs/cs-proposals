@@ -20,6 +20,7 @@ export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProp
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [justSigned, setJustSigned] = useState<string | null>(null)
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
@@ -118,6 +119,7 @@ export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProp
         return
       }
       setJustSigned(data?.signed_at || new Date().toISOString())
+      if (data?.payment_url) setPaymentUrl(data.payment_url)
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -147,6 +149,21 @@ export function SignatureSection({ slug, brand, signedAt }: SignatureSectionProp
                   day: 'numeric',
                 })}
               </p>
+              {paymentUrl && (
+                <a
+                  href={paymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block rounded-md bg-[var(--p-ink)] px-8 py-2.5 text-sm font-medium text-[var(--p-bg)] transition-opacity hover:opacity-90"
+                >
+                  Proceed to Payment
+                </a>
+              )}
+              {paymentUrl && (
+                <p className="mt-2 text-xs text-[var(--p-muted)]">
+                  An invoice has also been emailed to you.
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
