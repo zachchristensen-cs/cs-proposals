@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { PaymentEmbed } from './PaymentEmbed'
 import { getBrand } from './brands'
 
 const SIGN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proposal-sign`
@@ -24,7 +25,6 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [justSigned, setJustSigned] = useState<string | null>(null)
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
@@ -124,13 +124,6 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
         return
       }
       setJustSigned(data?.signed_at || new Date().toISOString())
-      if (data?.payment_url) {
-        setPaymentUrl(data.payment_url)
-        // Signing acts as checkout: send them straight to payment
-        setTimeout(() => {
-          window.location.href = data.payment_url
-        }, 1500)
-      }
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -150,30 +143,20 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
           </p>
 
           {done ? (
-            <div className="rounded-md border border-[var(--p-border)] p-6 text-center">
-              <p className="font-serif text-xl text-[var(--p-ink)]">This proposal has been signed.</p>
-              <p className="mt-1 text-sm text-[var(--p-muted)]">
-                Signed on{' '}
-                {new Date(done).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-              {paymentUrl && (
-                <a
-                  href={paymentUrl}
-                  className="mt-4 inline-block rounded-md bg-[var(--p-ink)] px-8 py-2.5 text-sm font-medium text-[var(--p-bg)] transition-opacity hover:opacity-90"
-                >
-                  Continue to Checkout
-                </a>
-              )}
-              {paymentUrl && (
-                <p className="mt-2 text-xs text-[var(--p-muted)]">
-                  Taking you to secure payment...
+            <>
+              <div className="rounded-md border border-[var(--p-border)] p-6 text-center">
+                <p className="font-serif text-xl text-[var(--p-ink)]">This proposal has been signed.</p>
+                <p className="mt-1 text-sm text-[var(--p-muted)]">
+                  Signed on{' '}
+                  {new Date(done).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                 </p>
-              )}
-            </div>
+              </div>
+              <PaymentEmbed slug={slug} />
+            </>
           ) : (
             <div className="space-y-4">
               <p className="text-sm leading-relaxed text-[var(--p-muted)]">

@@ -1,7 +1,6 @@
-// Stripe Checkout helpers (REST, no SDK). Signing flows straight into a
-// Checkout session: projects pay the first installment immediately;
-// retainers start a monthly subscription. Uses the platform secret key and,
-// when configured, routes to the brand's connected account:
+// Stripe helpers for signing. Signing creates the customer and payment
+// record; the embedded checkout session itself is created on demand by the
+// proposal-pay function (so a reloaded page can always resume payment).
 //   STRIPE_SECRET_KEY            - platform secret key (required)
 //   STRIPE_ACCOUNT_CAMBRIDGE     - optional acct_... connected account id
 //   STRIPE_ACCOUNT_AMMO          - optional acct_... connected account id
@@ -17,7 +16,6 @@ export interface StripeResult {
   sessionId?: string
   subscriptionId?: string
   invoiceId?: string
-  /** Checkout URL the signer is sent to right after signing */
   hostedInvoiceUrl?: string
   label: string
   amount: number
@@ -61,10 +59,7 @@ async function stripeRequest(
   return data
 }
 
-/**
- * Project proposals: Checkout session for the FIRST payment installment
- * (e.g. "Kickoff - 50%"). Later installments are invoiced when due.
- */
+/** Project proposals: create the customer for the first installment. */
 export async function createFirstInstallmentInvoice(opts: {
   brand: string
   clientName: string
@@ -84,33 +79,14 @@ export async function createFirstInstallmentInvoice(opts: {
     "metadata[signer_name]": opts.signerName,
   }, opts.brand)
 
-  const session = await stripeRequest("/checkout/sessions", {
-    mode: "payment",
-    customer: customer.id,
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": String(Math.round(first.amount * 100)),
-    "line_items[0][price_data][product_data][name]": `${opts.clientName} - ${first.label}`,
-    "line_items[0][quantity]": "1",
-    "invoice_creation[enabled]": "true",
-    success_url: `${opts.origin}/p/${opts.proposalSlug}?payment=success`,
-    cancel_url: `${opts.origin}/p/${opts.proposalSlug}?payment=cancelled`,
-    "metadata[proposal_slug]": opts.proposalSlug,
-    "metadata[installment]": first.label,
-  }, opts.brand)
-
   return {
     customerId: customer.id,
-    sessionId: session.id,
-    hostedInvoiceUrl: session.url,
     label: first.label,
     amount: first.amount,
   }
 }
 
-/**
- * Retainer proposals: Checkout session that starts a monthly subscription
- * for the full recurring amount.
- */
+/** Retainer proposals: create the customer for the monthly subscription. */
 export async function createRetainerSubscription(opts: {
   brand: string
   clientName: string
@@ -128,23 +104,8 @@ export async function createRetainerSubscription(opts: {
     "metadata[proposal_slug]": opts.proposalSlug,
   }, opts.brand)
 
-  const session = await stripeRequest("/checkout/sessions", {
-    mode: "subscription",
-    customer: customer.id,
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": String(Math.round(opts.monthlyAmount * 100)),
-    "line_items[0][price_data][recurring][interval]": "month",
-    "line_items[0][price_data][product_data][name]": `${opts.clientName} - Monthly Retainer`,
-    "line_items[0][quantity]": "1",
-    success_url: `${opts.origin}/p/${opts.proposalSlug}?payment=success`,
-    cancel_url: `${opts.origin}/p/${opts.proposalSlug}?payment=cancelled`,
-    "metadata[proposal_slug]": opts.proposalSlug,
-  }, opts.brand)
-
   return {
     customerId: customer.id,
-    sessionId: session.id,
-    hostedInvoiceUrl: session.url,
     label: "Monthly Retainer",
     amount: opts.monthlyAmount,
   }
