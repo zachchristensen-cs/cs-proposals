@@ -3,12 +3,15 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import type { ProposalContent } from '@/types/database'
 import { ProposalRenderer } from './renderer/ProposalRenderer'
+import { useViewTracking } from './hooks/useViewTracking'
 
 export function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>()
   const [content, setContent] = useState<ProposalContent | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useViewTracking(slug, !loading && !notFound && !!content)
 
   useEffect(() => {
     if (!slug) {

@@ -193,3 +193,27 @@ export interface ProposalMessage {
   attachments: ProposalAttachment[]
   created_at: string
 }
+
+export interface ProposalRecipient {
+  id: string
+  proposal_id: string
+  name: string
+  email: string
+  token: string
+  created_at: string
+}
+
+export interface ProposalView {
+  id: string
+  proposal_id: string
+  recipient_id: string | null
+  session_id: string
+  user_agent: string | null
+  referrer: string | null
+  ip: string | null
+  started_at: string
+  last_seen_at: string
+  duration_seconds: number
+  max_scroll_pct: number
+  sections_viewed: string[]
+}

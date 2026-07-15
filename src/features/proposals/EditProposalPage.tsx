@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Copy, Check, Download, User, Play, MessageSquare, Undo2, Redo2 } from 'lucide-react'
+import { ArrowLeft, Share2, Download, User, Play, MessageSquare, Undo2, Redo2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Proposal, ProposalContent, ProposalMessage, ProposalAttachment } from '@/types/database'
@@ -17,6 +17,7 @@ import { useUndoStack } from './hooks/useUndoStack'
 import { useProposalChat } from './hooks/useProposalChat'
 import { downloadProposalPdf } from './lib/downloadPdf'
 import { PresentationMode } from './presentation'
+import { ShareDialog } from './components/ShareDialog'
 import { toast } from 'sonner'
 
 function InlineRename({
@@ -98,7 +99,7 @@ export function EditProposalPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [copied, setCopied] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [presenting, setPresenting] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [chatWidth, setChatWidth] = useState(40) // percentage
@@ -387,14 +388,6 @@ export function EditProposalPage() {
     toast.success(`Status changed to ${status}`)
   }
 
-  function handleCopyLink() {
-    if (!proposal) return
-    const url = `${window.location.origin}/p/${proposal.slug}`
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    toast.success('Link copied to clipboard')
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   if (loading) {
     return (
@@ -420,6 +413,12 @@ export function EditProposalPage() {
         onClose={() => setPresenting(false)}
       />
     )}
+    <ShareDialog
+      proposalId={proposal.id}
+      slug={proposal.slug}
+      open={shareOpen}
+      onOpenChange={setShareOpen}
+    />
     <div className="flex h-full flex-col">
       {/* Top bar */}
       <div className="flex h-14 shrink-0 items-center gap-3 border-b px-5">
@@ -510,9 +509,9 @@ export function EditProposalPage() {
             <SelectItem value="archived">Archived</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleCopyLink}>
-          {copied ? <Check className="mr-1.5 size-3.5" /> : <Copy className="mr-1.5 size-3.5" />}
-          {copied ? 'Copied' : 'Copy Link'}
+        <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+          <Share2 className="mr-1.5 size-3.5" />
+          Share
         </Button>
         <Button
           variant="outline"
