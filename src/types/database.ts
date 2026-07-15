@@ -47,13 +47,15 @@ export interface AgencyTeamMember {
 
 // ─── Proposals ──────────────────────────────────────────────
 
-export type ProposalStatus = 'draft' | 'sent' | 'archived'
+export type ProposalStatus = 'draft' | 'sent' | 'signed' | 'archived'
 export type ProposalTier = 1 | 2 | 3
 
 export interface ProposalLineItem {
   name: string
   description: string
   price: number
+  /** Client can toggle this item on/off on the public proposal page */
+  optional?: boolean
 }
 
 export interface ProposalPhaseGroup {
@@ -100,9 +102,26 @@ export interface ProposalPersona {
   description: string
 }
 
+export interface ProposalDiscount {
+  label: string
+  /** Fixed dollar amount off */
+  amount?: number
+  /** Percentage off the subtotal (0-100); used when amount is not set */
+  percent?: number
+}
+
 export interface ProposalContent {
   /** Which agency the proposal is branded as; defaults to Cambridge Studio */
   brand?: 'cambridge' | 'ammo'
+
+  /** project = 50/25/25 installments; retainer = full recurring amount */
+  proposal_type?: 'project' | 'retainer'
+
+  /** Monthly amount for retainer proposals; defaults to total */
+  retainer_amount?: number
+
+  /** Discounts subtracted from the subtotal on the public page and invoices */
+  discounts?: ProposalDiscount[]
 
   cover: {
     client_name: string
@@ -157,6 +176,7 @@ export interface Proposal {
   id: string
   slug: string
   status: ProposalStatus
+  signed_at?: string | null
   tier: ProposalTier | null
   client_name: string | null
   client_contact: string | null
@@ -192,4 +212,44 @@ export interface ProposalMessage {
   content: string
   attachments: ProposalAttachment[]
   created_at: string
+}
+
+export interface ProposalRecipient {
+  id: string
+  proposal_id: string
+  name: string
+  email: string
+  token: string
+  created_at: string
+}
+
+export interface ProposalView {
+  id: string
+  proposal_id: string
+  recipient_id: string | null
+  session_id: string
+  user_agent: string | null
+  referrer: string | null
+  ip: string | null
+  started_at: string
+  last_seen_at: string
+  duration_seconds: number
+  max_scroll_pct: number
+  sections_viewed: string[]
+}
+
+export interface ProposalSignature {
+  id: string
+  proposal_id: string
+  recipient_id: string | null
+  first_name: string
+  last_name: string
+  email: string
+  signature_type: 'typed' | 'drawn'
+  signature_data: string
+  consent: boolean
+  ip: string | null
+  user_agent: string | null
+  signed_at: string
+  content_snapshot: ProposalContent
 }
