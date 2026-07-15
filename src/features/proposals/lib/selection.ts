@@ -5,6 +5,11 @@ export function itemKey(phaseIndex: number, itemIndex: number): string {
   return `${phaseIndex}:${itemIndex}`
 }
 
+/** Stable key for an optional phase: "p:<phaseIndex>" */
+export function phaseKey(phaseIndex: number): string {
+  return `p:${phaseIndex}`
+}
+
 export interface AdjustedTotals {
   subtotal: number
   discountTotal: number
@@ -25,6 +30,7 @@ export function computeAdjustedTotals(
 ): AdjustedTotals {
   let subtotal = 0
   content.phases?.forEach((phase, pi) => {
+    if (phase.optional && deselected.has(phaseKey(pi))) return
     const items = phase.items ?? []
     const pricedItems = items.filter((it) => it.price > 0)
     if (pricedItems.length > 0) {
@@ -60,9 +66,9 @@ export function computeAdjustedTotals(
   return { subtotal, discountTotal, total, termAmounts }
 }
 
-/** True when any phase has an optional priced line item */
+/** True when any phase is optional or has an optional priced line item */
 export function hasSelectableItems(content: ProposalContent): boolean {
-  return (content.phases ?? []).some((phase) =>
-    (phase.items ?? []).some((it) => it.optional && it.price > 0),
+  return (content.phases ?? []).some(
+    (phase) => phase.optional || (phase.items ?? []).some((it) => it.optional && it.price > 0),
   )
 }

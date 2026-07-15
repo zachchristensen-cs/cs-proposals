@@ -70,6 +70,8 @@ export interface ProposalPhase {
   subtotal: number
   /** Hide this phase's price in the rendered proposal; still counts toward the total */
   hide_price?: boolean
+  /** Client can toggle this whole phase on/off on the public proposal page */
+  optional?: boolean
   narrative?: string
   groups?: ProposalPhaseGroup[]
   items: ProposalLineItem[]

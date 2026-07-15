@@ -6,6 +6,7 @@ import { ProposalRenderer } from './renderer/ProposalRenderer'
 import { SignatureSection } from './renderer/SignatureSection'
 import { useViewTracking } from './hooks/useViewTracking'
 import { computeAdjustedTotals, hasSelectableItems } from './lib/selection'
+import { transformContentForBrand } from './lib/brandText'
 
 export function PublicProposalPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -40,7 +41,7 @@ export function PublicProposalPage() {
       if (error || !data) {
         setNotFound(true)
       } else {
-        setContent(data.content as ProposalContent)
+        setContent(transformContentForBrand(data.content as ProposalContent))
         setSignedAt((data as { signed_at?: string | null }).signed_at ?? null)
       }
       setLoading(false)
@@ -64,7 +65,6 @@ export function PublicProposalPage() {
           <h1 className="font-serif text-2xl text-[var(--p-ink)]">
             This proposal doesn't exist or has been removed.
           </h1>
-          <p className="mt-2 text-sm text-[var(--p-muted)]">Cambridge Studio</p>
         </div>
       </div>
     )

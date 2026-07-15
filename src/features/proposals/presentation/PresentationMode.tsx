@@ -6,13 +6,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import type { ProposalContent } from '@/types/database'
 import { useSlides } from './useSlides'
 import { getBrand } from '../renderer/brands'
+import { transformContentForBrand } from '../lib/brandText'
 
 interface PresentationModeProps {
   content: ProposalContent
   onClose: () => void
 }
 
-export function PresentationMode({ content, onClose }: PresentationModeProps) {
+export function PresentationMode({ content: rawContent, onClose }: PresentationModeProps) {
+  // Client-facing view: enforce brand separation in all text
+  const content = transformContentForBrand(rawContent)
   const slides = useSlides(content)
   const [currentIndex, setCurrentIndex] = useState(0)
   const directionRef = useRef<'forward' | 'backward'>('forward')

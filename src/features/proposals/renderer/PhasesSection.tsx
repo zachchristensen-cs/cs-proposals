@@ -1,5 +1,5 @@
 import type { ProposalPhase } from '@/types/database'
-import { itemKey } from '../lib/selection'
+import { itemKey, phaseKey } from '../lib/selection'
 import { formatCurrency } from '../lib/formatCurrency'
 import { EditableText } from '../components/EditableText'
 import { EditablePrice } from '../components/EditablePrice'
@@ -138,11 +138,23 @@ export function PhasesSection({
         const hasGroups = phase.groups && phase.groups.length > 0
         const hasLineItems = phase.items && phase.items.length > 0
 
+        const pKey = phaseKey(i)
+        const phaseOff = !!(phase.optional && deselected?.has(pKey))
+
         return (
-          <section key={i} className="mb-12">
+          <section key={i} className={`mb-12 ${phaseOff ? 'opacity-45' : ''}`}>
             {/* Section number + title with price */}
             <div className="group/item mb-6 flex items-start justify-between">
               <div className="flex items-start gap-4">
+                {selectable && phase.optional && (
+                  <input
+                    type="checkbox"
+                    checked={!phaseOff}
+                    onChange={() => onToggleItem?.(pKey)}
+                    className="mt-2 size-4 shrink-0 cursor-pointer accent-[var(--p-ink)]"
+                    aria-label={`Include ${phase.name}`}
+                  />
+                )}
                 {!hideNumber && (
                   <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--p-border)] text-xs text-[var(--p-muted)]">
                     {num}
@@ -159,8 +171,23 @@ export function PhasesSection({
                     phase.name
                   )}
                 </h2>
+                {phase.optional && !selectable && (
+                  <span className="mt-2 text-xs uppercase tracking-wide text-[var(--p-muted)]">Optional</span>
+                )}
                 {editable && onPhasesChange && (
-                  <RemoveButton onRemove={() => removePhase(i)} title="Remove phase" />
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => updatePhase(i, { optional: !phase.optional })}
+                      className={`mt-2 shrink-0 text-xs opacity-0 transition-opacity group-hover/item:opacity-100 print:hidden ${
+                        phase.optional ? 'text-[var(--p-accent)]' : 'text-[var(--p-muted)]'
+                      }`}
+                      title={phase.optional ? 'Client can toggle this phase. Click to make required.' : 'Click to let the client toggle this whole phase on/off'}
+                    >
+                      {phase.optional ? 'Optional ✓' : 'Make optional'}
+                    </button>
+                    <RemoveButton onRemove={() => removePhase(i)} title="Remove phase" />
+                  </>
                 )}
               </div>
               {!hidePricing && !phase.hide_price && (

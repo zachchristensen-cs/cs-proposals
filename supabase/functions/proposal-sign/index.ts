@@ -32,6 +32,7 @@ function computeAdjustedTotals(content: any, deselected: Set<string>) {
   let subtotal = 0
   // deno-lint-ignore no-explicit-any
   ;(content.phases ?? []).forEach((phase: any, pi: number) => {
+    if (phase.optional && deselected.has(`p:${pi}`)) return
     const items = phase.items ?? []
     // deno-lint-ignore no-explicit-any
     const priced = items.filter((it: any) => it.price > 0)
