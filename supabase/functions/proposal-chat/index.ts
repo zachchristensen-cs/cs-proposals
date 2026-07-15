@@ -80,7 +80,7 @@ HARD RULE: Never use em dashes (—) or double hyphens (--) anywhere: not in cha
 
 HARD RULE: Every proposal must include the "team" section, populated with the full roster from the Team Members list, regardless of tier.
 
-HARD RULE: Payment terms are always exactly three installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total.
+HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJECT proposals (the default) use exactly three payment installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total. RETAINER proposals (ongoing monthly engagements) have NO installment split: set "retainer_amount" to the monthly amount, set "total" to the same monthly amount, and payment terms should be a single entry labeled "Monthly Retainer" with the monthly amount and a description like "Billed monthly".
 
 `
 
@@ -109,6 +109,10 @@ CRITICAL: Return the JSON with all fields at the TOP LEVEL of the object. Do NOT
 
 The ProposalContent JSON schema:
 {
+  "brand?": "cambridge" | "ammo",
+  "proposal_type?": "project" | "retainer",
+  "retainer_amount?": number,
+  "discounts?": [{ "label": string, "amount?": number, "percent?": number }],
   "cover": { "client_name": string, "prepared_for?": string, "date": string, "timeline?": string, "description": string },
   "opportunity?": { "paragraphs": string[] },
   "personas?": { "intro?": string, "items": [{ "title": string, "description": string }] },
@@ -119,8 +123,9 @@ The ProposalContent JSON schema:
     "subtotal": number,
     "hide_price?": boolean,
     "narrative?": string,
+    "optional?": boolean,
     "groups?": [{ "name": string, "items": string[] }],
-    "items": []
+    "items": [{ "name": string, "description": string, "price": number, "optional?": boolean }]
   }],
   "total": number,
   "hide_total?": boolean,
@@ -132,6 +137,8 @@ The ProposalContent JSON schema:
 }
 
 IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value: the total cost for that phase. The "total" field must equal the sum of all phase prices. A phase's "hide_price" only hides the price display next to the phase name; the phase still counts toward "total". Preserve this flag when updating phases.
+
+OPTIONAL ITEMS & DISCOUNTS: Mark a phase or priced line item "optional": true when the client should be able to toggle it on/off on the public proposal page (add-on packages, nice-to-haves the operator flagged as the client's choice). Core scope is never optional. Discounts go in the top-level "discounts" array as structured data (fixed "amount" or "percent"), never as prose-only mentions; the app auto-subtracts them from the total and invoices.
 `
   }
 
