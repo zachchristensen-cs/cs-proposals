@@ -30,13 +30,6 @@ export function TeamSection({ team, editable, onTeamChange }: TeamSectionProps) 
   const count = team.members.length
   const cols = count <= 2 ? count : count % 3 === 0 || count >= 6 ? 3 : 2
 
-  function updateMemberBio(index: number, bio: string) {
-    const members = team.members.map((m, i) =>
-      i === index ? { ...m, bio } : m,
-    )
-    onTeamChange?.({ ...team, members })
-  }
-
   function removeMember(index: number) {
     const members = team.members.filter((_, i) => i !== index)
     onTeamChange?.({ ...team, members })
@@ -95,19 +88,6 @@ export function TeamSection({ team, editable, onTeamChange }: TeamSectionProps) 
                     {member.name}
                   </h3>
                   <p className="text-xs text-[var(--p-muted)]">{member.role}</p>
-                  {member.bio && (
-                    <p className="mt-1 text-sm leading-relaxed text-[var(--p-muted)]">
-                      {editable ? (
-                        <EditableText
-                          value={member.bio}
-                          onChange={(v) => updateMemberBio(i, v)}
-                          multiline
-                        />
-                      ) : (
-                        member.bio
-                      )}
-                    </p>
-                  )}
                 </div>
                 {editable && onTeamChange && (
                   <div className="absolute -right-1 -top-1">
