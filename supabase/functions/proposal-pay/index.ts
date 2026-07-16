@@ -184,11 +184,19 @@ Deno.serve(async (req) => {
     .update({ stripe_checkout_session_id: session.id, status: "sent" })
     .eq("id", payment.id)
 
+  // Each brand's sessions are initialized with that brand's own publishable
+  // key, so no stripeAccount option is needed client-side.
+  const publishableKey =
+    (brand === "ammo"
+      ? Deno.env.get("STRIPE_PK_AMMO")
+      : Deno.env.get("STRIPE_PK_CAMBRIDGE")) ??
+    Deno.env.get("STRIPE_PUBLISHABLE_KEY") ?? null
+
   return json({
     paid: false,
     client_secret: session.client_secret,
-    publishable_key: Deno.env.get("STRIPE_PUBLISHABLE_KEY") ?? null,
-    stripe_account: stripeAccountFor(brand) ?? null,
+    publishable_key: publishableKey,
+    stripe_account: null,
     amount: Number(payment.amount),
     label: payment.label,
   })
