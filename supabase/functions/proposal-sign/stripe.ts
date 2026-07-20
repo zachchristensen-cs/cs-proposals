@@ -1,9 +1,15 @@
 // Stripe helpers for signing. Signing creates the customer and payment
 // record; the embedded checkout session itself is created on demand by the
 // proposal-pay function (so a reloaded page can always resume payment).
-//   STRIPE_SECRET_KEY            - platform secret key (required)
-//   STRIPE_ACCOUNT_CAMBRIDGE     - optional acct_... connected account id
-//   STRIPE_ACCOUNT_AMMO          - optional acct_... connected account id
+//
+// Per-brand secret keys (the Ammo and Cambridge Stripe accounts live in the
+// same Stripe *organization*, NOT a Connect platform, so the Stripe-Account
+// header cannot be used — each brand needs its own API key):
+//   STRIPE_SECRET_KEY   - Ammo account secret key (platform/default)
+//   STRIPE_SK_AMMO      - optional override for the Ammo account
+//   STRIPE_SK_CAMBRIDGE - Cambridge account secret key (required for
+//                         Cambridge-brand proposals; we fail loudly rather
+//                         than silently billing through the wrong account)
 
 interface PaymentTerm {
   label: string
@@ -27,6 +33,21 @@ function formEncode(params: Record<string, string>): string {
     .join("&")
 }
 
+export function stripeKeyFor(brand: string): string {
+  if (brand === "ammo") {
+    const key = Deno.env.get("STRIPE_SK_AMMO") ?? Deno.env.get("STRIPE_SECRET_KEY")
+    if (!key) throw new Error("STRIPE_SECRET_KEY not configured")
+    return key
+  }
+  const key = Deno.env.get("STRIPE_SK_CAMBRIDGE")
+  if (!key) {
+    throw new Error(
+      "STRIPE_SK_CAMBRIDGE not configured - add the Cambridge account's secret key to the edge function secrets",
+    )
+  }
+  return key
+}
+
 async function stripeRequest(
   path: string,
   params: Record<string, string>,
@@ -34,18 +55,12 @@ async function stripeRequest(
   method = "POST",
   // deno-lint-ignore no-explicit-any
 ): Promise<any> {
-  const key = Deno.env.get("STRIPE_SECRET_KEY")
-  if (!key) throw new Error("STRIPE_SECRET_KEY not configured")
-
-  const account = brand === "ammo"
-    ? Deno.env.get("STRIPE_ACCOUNT_AMMO")
-    : Deno.env.get("STRIPE_ACCOUNT_CAMBRIDGE")
+  const key = stripeKeyFor(brand)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/x-www-form-urlencoded",
   }
-  if (account) headers["Stripe-Account"] = account
 
   const res = await fetch(`https://api.stripe.com/v1${path}`, {
     method,
