@@ -58,6 +58,27 @@ export interface ProposalLineItem {
   optional?: boolean
 }
 
+export interface ProposalPackage {
+  /** Stable id used to record the client's choice */
+  id: string
+  name: string
+  /** One-time price (or, for retainer packages, the monthly amount) that becomes the proposal total when chosen */
+  price: number
+  summary?: string
+  /** Bullet list of what's included in this package */
+  features?: string[]
+  /** Visually highlighted and selected by default */
+  recommended?: boolean
+}
+
+/** A set of mutually-exclusive packages/tiers; the client picks exactly one and pays that. */
+export interface ProposalPackageGroup {
+  intro?: string
+  /** id of the package selected by default; falls back to the recommended one, then the first */
+  default_id?: string
+  options: ProposalPackage[]
+}
+
 export interface ProposalPhaseGroup {
   name: string
   items: string[]
@@ -143,6 +164,9 @@ export interface ProposalContent {
   }
 
   phases: ProposalPhase[]
+
+  /** Optional pick-one packages/tiers; when present, the chosen package's price drives the total */
+  packages?: ProposalPackageGroup
 
   total: number
   hide_total?: boolean
