@@ -79,6 +79,27 @@ async function stripeRequest(
   return data
 }
 
+// Create a checkout session, adapting to the account's Stripe API version:
+// newer API versions renamed ui_mode "embedded" to "embedded_page".
+async function createSession(
+  params: Record<string, string>,
+  brand: string,
+  // deno-lint-ignore no-explicit-any
+): Promise<any> {
+  try {
+    return await stripeRequest("/checkout/sessions", params, brand)
+  } catch (err) {
+    if (String(err).includes("embedded_page")) {
+      return await stripeRequest(
+        "/checkout/sessions",
+        { ...params, "ui_mode": "embedded_page" },
+        brand,
+      )
+    }
+    throw err
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders })
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405)
@@ -163,7 +184,7 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   let session: any
   if (isRetainer) {
-    session = await stripeRequest("/checkout/sessions", {
+    session = await createSession({
       ...base,
       mode: "subscription",
       "line_items[0][price_data][recurring][interval]": "month",
@@ -182,10 +203,10 @@ Deno.serve(async (req) => {
       "payment_method_options[customer_balance][bank_transfer][type]": "us_bank_transfer",
     }
     try {
-      session = await stripeRequest("/checkout/sessions", withWire, brand)
+      session = await createSession(withWire, brand)
     } catch (err) {
       console.error("wire-enabled session failed, falling back:", err)
-      session = await stripeRequest("/checkout/sessions", {
+      session = await createSession({
         ...base,
         mode: "payment",
         "invoice_creation[enabled]": "true",
