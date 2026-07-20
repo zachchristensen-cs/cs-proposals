@@ -13,9 +13,11 @@ interface SignatureSectionProps {
   deselected?: Set<string>
   /** Adjusted total shown next to the sign button */
   total?: number
+  /** Chosen package id (pick-one proposals); sent with the signature */
+  selectedPackageId?: string
 }
 
-export function SignatureSection({ slug, brand, signedAt, deselected, total }: SignatureSectionProps) {
+export function SignatureSection({ slug, brand, signedAt, deselected, total, selectedPackageId }: SignatureSectionProps) {
   const brandConfig = getBrand(brand)
   const [mode, setMode] = useState<'typed' | 'drawn'>('typed')
   const [firstName, setFirstName] = useState('')
@@ -116,6 +118,7 @@ export function SignatureSection({ slug, brand, signedAt, deselected, total }: S
           signature_data: signatureData,
           consent: true,
           deselected_items: deselected ? Array.from(deselected) : [],
+          selected_package_id: selectedPackageId,
         }),
       })
       const data = await res.json().catch(() => null)

@@ -3,6 +3,7 @@ import { CoverSection } from './CoverSection'
 import { OpportunitySection } from './OpportunitySection'
 import { PersonasSection } from './PersonasSection'
 import { PhasesSection } from './PhasesSection'
+import { PackagesSection } from './PackagesSection'
 import { TotalsSection } from './TotalsSection'
 import { PaymentSection } from './PaymentSection'
 import { MaintenanceSection } from './MaintenanceSection'
@@ -20,12 +21,15 @@ interface ProposalRendererProps {
   selectable?: boolean
   deselected?: Set<string>
   onToggleItem?: (key: string) => void
+  /** Pick-one packages: currently selected package id + selection handler */
+  selectedPackageId?: string
+  onSelectPackage?: (id: string) => void
 }
 
-export function ProposalRenderer({ content, editable, onContentChange, selectable, deselected, onToggleItem }: ProposalRendererProps) {
+export function ProposalRenderer({ content, editable, onContentChange, selectable, deselected, onToggleItem, selectedPackageId, onSelectPackage }: ProposalRendererProps) {
   const brand = getBrand(content.brand)
   const isRetainer = content.proposal_type === 'retainer'
-  const adjusted = computeAdjustedTotals(content, deselected ?? new Set())
+  const adjusted = computeAdjustedTotals(content, deselected ?? new Set(), selectedPackageId)
   const displayTotal = isRetainer
     ? (content.retainer_amount ?? adjusted.total)
     : adjusted.total
@@ -44,11 +48,13 @@ export function ProposalRenderer({ content, editable, onContentChange, selectabl
       ? content.payment!.terms.map((t) => t.label).join(' & ').replace(/&([^&]*)$/, '& $1') || undefined
       : undefined
 
-  // Numbered sections: phases start at 1, maintenance follows after
-  const phaseScopeStart = 1
+  // Numbered sections: packages (if any) = 1, then phases, then maintenance
+  const hasPackages = (content.packages?.options?.length ?? 0) > 0
+  const packagesScopeNum = 1
+  const phaseScopeStart = hasPackages ? 2 : 1
   const maintenanceScopeNum = phaseScopeStart + (content.phases?.length ?? 0)
 
-  function removeSection(key: 'opportunity' | 'personas' | 'maintenance' | 'team' | 'notes' | 'timing_note') {
+  function removeSection(key: 'opportunity' | 'personas' | 'packages' | 'maintenance' | 'team' | 'notes' | 'timing_note') {
     if (!onContentChange) return
     const updated = { ...content }
     if (key === 'timing_note') {
@@ -156,6 +162,29 @@ export function ProposalRenderer({ content, editable, onContentChange, selectabl
               onPersonasChange={
                 onContentChange
                   ? (personas) => onContentChange({ ...content, personas })
+                  : undefined
+              }
+            />
+          </div>
+        )}
+
+        {hasPackages && (
+          <div className="group/section relative">
+            {editable && onContentChange && (
+              <div className="absolute -right-6 top-0">
+                <RemoveButton onRemove={() => removeSection('packages')} title="Remove Packages" className="opacity-0 group-hover/section:opacity-100" />
+              </div>
+            )}
+            <PackagesSection
+              packages={content.packages!}
+              sectionNumber={packagesScopeNum}
+              selectable={selectable}
+              selectedId={selectedPackageId}
+              onSelect={onSelectPackage}
+              editable={editable}
+              onPackagesChange={
+                onContentChange
+                  ? (packages) => onContentChange({ ...content, packages })
                   : undefined
               }
             />
