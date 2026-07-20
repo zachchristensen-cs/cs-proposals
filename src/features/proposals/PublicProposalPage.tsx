@@ -5,7 +5,7 @@ import type { ProposalContent } from '@/types/database'
 import { ProposalRenderer } from './renderer/ProposalRenderer'
 import { SignatureSection } from './renderer/SignatureSection'
 import { useViewTracking } from './hooks/useViewTracking'
-import { computeAdjustedTotals, hasSelectableItems } from './lib/selection'
+import { computeAdjustedTotals, hasSelectableItems, hasPackages, resolveSelectedPackage } from './lib/selection'
 import { transformContentForBrand } from './lib/brandText'
 
 export function PublicProposalPage() {
@@ -13,6 +13,7 @@ export function PublicProposalPage() {
   const [content, setContent] = useState<ProposalContent | null>(null)
   const [signedAt, setSignedAt] = useState<string | null>(null)
   const [deselected, setDeselected] = useState<Set<string>>(new Set())
+  const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -21,8 +22,8 @@ export function PublicProposalPage() {
   const adjustedTotal = useMemo(() => {
     if (!content) return 0
     if (content.proposal_type === 'retainer') return content.retainer_amount ?? content.total
-    return computeAdjustedTotals(content, deselected).total
-  }, [content, deselected])
+    return computeAdjustedTotals(content, deselected, selectedPackageId).total
+  }, [content, deselected, selectedPackageId])
 
   useEffect(() => {
     if (!slug) {
@@ -41,7 +42,9 @@ export function PublicProposalPage() {
       if (error || !data) {
         setNotFound(true)
       } else {
-        setContent(transformContentForBrand(data.content as ProposalContent))
+        const loaded = transformContentForBrand(data.content as ProposalContent)
+        setContent(loaded)
+        setSelectedPackageId(resolveSelectedPackage(loaded, undefined)?.id)
         setSignedAt((data as { signed_at?: string | null }).signed_at ?? null)
       }
       setLoading(false)
@@ -74,7 +77,7 @@ export function PublicProposalPage() {
     <>
       <ProposalRenderer
         content={content}
-        selectable={!signedAt && hasSelectableItems(content)}
+        selectable={!signedAt && (hasSelectableItems(content) || hasPackages(content))}
         deselected={deselected}
         onToggleItem={(key) =>
           setDeselected((prev) => {
@@ -84,12 +87,15 @@ export function PublicProposalPage() {
             return next
           })
         }
+        selectedPackageId={selectedPackageId}
+        onSelectPackage={setSelectedPackageId}
       />
       <SignatureSection
         slug={slug!}
         brand={content.brand}
         signedAt={signedAt}
         deselected={deselected}
+        selectedPackageId={selectedPackageId}
         total={adjustedTotal}
       />
     </>
