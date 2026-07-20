@@ -10,6 +10,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2"
 // reusing the customer created at signing. Card + ACH debit always; US bank
 // transfer (wire) is requested too and dropped automatically if the Stripe
 // account doesn't have it enabled.
+//
+// Per-brand secret keys (the Ammo and Cambridge Stripe accounts live in the
+// same Stripe *organization*, NOT a Connect platform, so the Stripe-Account
+// header cannot be used — each brand needs its own API key):
+//   STRIPE_SECRET_KEY   - Ammo account secret key (platform/default)
+//   STRIPE_SK_AMMO      - optional override for the Ammo account
+//   STRIPE_SK_CAMBRIDGE - Cambridge account secret key (required for
+//                         Cambridge-brand proposals)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,10 +38,19 @@ function formEncode(params: Record<string, string>): string {
     .join("&")
 }
 
-function stripeAccountFor(brand: string): string | undefined {
-  return brand === "ammo"
-    ? Deno.env.get("STRIPE_ACCOUNT_AMMO")
-    : Deno.env.get("STRIPE_ACCOUNT_CAMBRIDGE")
+function stripeKeyFor(brand: string): string {
+  if (brand === "ammo") {
+    const key = Deno.env.get("STRIPE_SK_AMMO") ?? Deno.env.get("STRIPE_SECRET_KEY")
+    if (!key) throw new Error("STRIPE_SECRET_KEY not configured")
+    return key
+  }
+  const key = Deno.env.get("STRIPE_SK_CAMBRIDGE")
+  if (!key) {
+    throw new Error(
+      "STRIPE_SK_CAMBRIDGE not configured - add the Cambridge account's secret key to the edge function secrets",
+    )
+  }
+  return key
 }
 
 async function stripeRequest(
@@ -43,15 +60,12 @@ async function stripeRequest(
   method = "POST",
   // deno-lint-ignore no-explicit-any
 ): Promise<any> {
-  const key = Deno.env.get("STRIPE_SECRET_KEY")
-  if (!key) throw new Error("STRIPE_SECRET_KEY not configured")
+  const key = stripeKeyFor(brand)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/x-www-form-urlencoded",
   }
-  const account = stripeAccountFor(brand)
-  if (account) headers["Stripe-Account"] = account
 
   const res = await fetch(`https://api.stripe.com/v1${path}`, {
     method,
@@ -184,8 +198,8 @@ Deno.serve(async (req) => {
     .update({ stripe_checkout_session_id: session.id, status: "sent" })
     .eq("id", payment.id)
 
-  // Each brand's sessions are initialized with that brand's own publishable
-  // key, so no stripeAccount option is needed client-side.
+  // Each brand's sessions are created with that brand's own secret key, so
+  // the matching publishable key is all the client needs (no stripeAccount).
   const publishableKey =
     (brand === "ammo"
       ? Deno.env.get("STRIPE_PK_AMMO")
