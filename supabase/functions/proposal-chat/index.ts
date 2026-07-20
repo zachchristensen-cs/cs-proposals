@@ -129,6 +129,11 @@ The ProposalContent JSON schema:
   }],
   "total": number,
   "hide_total?": boolean,
+  "packages?": {
+    "intro?": string,
+    "default_id?": string,
+    "options": [{ "id": string, "name": string, "price": number, "summary?": string, "features?": string[], "recommended?": boolean }]
+  },
   "payment": { "terms": [{ "label": string, "amount": number, "description": string }] },
   "maintenance?": { "tiers": [{ "name": string, "price": string, "summary": string, "description": string }], "recommendation?": string },
   "team?": { "intro": string, "members": [{ "name": string, "role": string, "bio": string, "initials": string, "photo_url?": string }] },
@@ -139,6 +144,8 @@ The ProposalContent JSON schema:
 IMPORTANT: For phases, prefer using "groups" (sub-headings with bullet lists) over individually priced "items". Set "items" to an empty array [] when using groups. The "price" and "subtotal" on each phase should be the same value: the total cost for that phase. The "total" field must equal the sum of all phase prices. A phase's "hide_price" only hides the price display next to the phase name; the phase still counts toward "total". Preserve this flag when updating phases.
 
 OPTIONAL ITEMS & DISCOUNTS: Mark a phase or priced line item "optional": true when the client should be able to toggle it on/off on the public proposal page (add-on packages, nice-to-haves the operator flagged as the client's choice). Core scope is never optional. Discounts go in the top-level "discounts" array as structured data (fixed "amount" or "percent"), never as prose-only mentions; the app auto-subtracts them from the total and invoices.
+
+SELECTABLE PACKAGES (PICK-ONE TIERS): When the engagement is best sold as mutually-exclusive tiers where the client picks ONE (e.g. Good/Better/Best, or Standard vs. Premium), use the top-level "packages" block instead of forcing everything into phases. Give each option a stable "id" (a short slug like "standard"), a "name", a "price", a short "summary", and a "features" bullet list of what's included. Mark the option you recommend with "recommended": true and set "default_id" to that option's id. When "packages" is present, the client's chosen package price becomes the proposal total, so set the top-level "total" to the recommended option's price, and treat any "phases" you include as descriptive scope (they will NOT be summed into the price). You can still add à-la-carte "optional" line items on top of a chosen package. Use "packages" ONLY when the client genuinely chooses one tier; for a single fixed scope with add-ons, keep using phases + optional items. Never combine a mandatory priced phase with packages expecting both to be charged.
 `
   }
 
