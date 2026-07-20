@@ -28,24 +28,66 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Ported from src/features/proposals/lib/selection.ts - keep in sync.
 // deno-lint-ignore no-explicit-any
-function computeAdjustedTotals(content: any, deselected: Set<string>) {
-  let subtotal = 0
-  // deno-lint-ignore no-explicit-any
-  ;(content.phases ?? []).forEach((phase: any, pi: number) => {
-    if (phase.optional && deselected.has(`p:${pi}`)) return
-    const items = phase.items ?? []
+function resolveSelectedPackage(content: any, selectedPackageId?: string) {
+  const options = content.packages?.options ?? []
+  if (options.length === 0) return null
+  return (
     // deno-lint-ignore no-explicit-any
-    const priced = items.filter((it: any) => it.price > 0)
-    if (priced.length > 0) {
-      // deno-lint-ignore no-explicit-any
-      items.forEach((item: any, ii: number) => {
-        if (item.optional && deselected.has(`${pi}:${ii}`)) return
-        subtotal += item.price || 0
-      })
-    } else {
-      subtotal += phase.price ?? phase.subtotal ?? 0
-    }
+    options.find((p: any) => p.id === selectedPackageId) ??
+    // deno-lint-ignore no-explicit-any
+    options.find((p: any) => p.id === content.packages?.default_id) ??
+    // deno-lint-ignore no-explicit-any
+    options.find((p: any) => p.recommended) ??
+    options[0]
+  )
+}
+
+// deno-lint-ignore no-explicit-any
+function optionalItemsSubtotal(phase: any, pi: number, deselected: Set<string>) {
+  let sum = 0
+  // deno-lint-ignore no-explicit-any
+  ;(phase.items ?? []).forEach((item: any, ii: number) => {
+    if (item.optional && item.price > 0 && !deselected.has(`${pi}:${ii}`)) sum += item.price
   })
+  return sum
+}
+
+// deno-lint-ignore no-explicit-any
+function phaseSubtotal(phase: any, pi: number, deselected: Set<string>) {
+  if (phase.optional && deselected.has(`p:${pi}`)) return 0
+  const items = phase.items ?? []
+  // deno-lint-ignore no-explicit-any
+  const priced = items.filter((it: any) => it.price > 0)
+  if (priced.length > 0) {
+    let sum = 0
+    // deno-lint-ignore no-explicit-any
+    items.forEach((item: any, ii: number) => {
+      if (item.optional && deselected.has(`${pi}:${ii}`)) return
+      sum += item.price || 0
+    })
+    return sum
+  }
+  return phase.price ?? phase.subtotal ?? 0
+}
+
+// deno-lint-ignore no-explicit-any
+function computeAdjustedTotals(content: any, deselected: Set<string>, selectedPackageId?: string) {
+  const pkg = resolveSelectedPackage(content, selectedPackageId)
+
+  let subtotal = 0
+  if (pkg) {
+    subtotal += pkg.price || 0
+    // deno-lint-ignore no-explicit-any
+    ;(content.phases ?? []).forEach((phase: any, pi: number) => {
+      if (phase.optional) subtotal += phaseSubtotal(phase, pi, deselected)
+      else subtotal += optionalItemsSubtotal(phase, pi, deselected)
+    })
+  } else {
+    // deno-lint-ignore no-explicit-any
+    ;(content.phases ?? []).forEach((phase: any, pi: number) => {
+      subtotal += phaseSubtotal(phase, pi, deselected)
+    })
+  }
 
   let discountTotal = 0
   for (const d of content.discounts ?? []) {
@@ -138,7 +180,10 @@ Deno.serve(async (req) => {
     ? body.deselected_items.slice(0, 200).map((k: unknown) => String(k).slice(0, 20))
     : []
   const deselected = new Set(deselectedItems)
-  const adjusted = computeAdjustedTotals(proposal.content ?? {}, deselected)
+  const selectedPackageId =
+    typeof body.selected_package_id === "string" ? body.selected_package_id.slice(0, 100) : undefined
+  const adjusted = computeAdjustedTotals(proposal.content ?? {}, deselected, selectedPackageId)
+  const chosenPackage = resolveSelectedPackage(proposal.content ?? {}, selectedPackageId)
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
   const userAgent = req.headers.get("user-agent")
@@ -160,6 +205,8 @@ Deno.serve(async (req) => {
         ...proposal.content,
         _signing: {
           deselected_items: deselectedItems,
+          selected_package_id: chosenPackage?.id ?? null,
+          selected_package_name: chosenPackage?.name ?? null,
           subtotal: adjusted.subtotal,
           discount_total: adjusted.discountTotal,
           total: adjusted.total,
@@ -192,7 +239,7 @@ Deno.serve(async (req) => {
   let stripeSummary = ""
   try {
     if (content.proposal_type === "retainer") {
-      const monthly = Number(content.retainer_amount ?? adjusted.total ?? content.total ?? 0)
+      const monthly = Number(chosenPackage?.price ?? content.retainer_amount ?? adjusted.total ?? content.total ?? 0)
       stripeResult = await createRetainerSubscription({
         brand,
         clientName,
