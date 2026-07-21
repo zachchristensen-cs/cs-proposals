@@ -37,11 +37,10 @@ export function PackagesSection({
 }: PackagesSectionProps) {
   const options = packages.options ?? []
 
-  // Which card reads as "selected": the client's choice, else default, else recommended, else first
+  // Which card reads as "selected": the client's choice, else the default, else the first
   const activeId =
     options.find((p) => p.id === selectedId)?.id ??
     options.find((p) => p.id === packages.default_id)?.id ??
-    options.find((p) => p.recommended)?.id ??
     options[0]?.id
 
   function updatePackage(index: number, patch: Partial<ProposalPackage>) {
@@ -72,11 +71,6 @@ export function PackagesSection({
 
   function addPackage() {
     const next = [...options, { id: newPackageId(), name: 'New package', price: 0, features: [] }]
-    onPackagesChange?.({ ...packages, options: next })
-  }
-
-  function setRecommended(index: number) {
-    const next = options.map((p, i) => ({ ...p, recommended: i === index }))
     onPackagesChange?.({ ...packages, options: next })
   }
 
@@ -133,12 +127,6 @@ export function PackagesSection({
                   : 'border-[var(--p-border)]'
               } ${clickable ? 'cursor-pointer hover:border-[var(--p-ink)]' : ''}`}
             >
-              {pkg.recommended && (
-                <span className="absolute -top-2 left-4 rounded-full bg-[var(--p-ink)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--p-bg)]">
-                  Recommended
-                </span>
-              )}
-
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-serif text-lg text-[var(--p-ink)]">
                   {editable ? (
@@ -199,14 +187,7 @@ export function PackagesSection({
               )}
 
               {editable && onPackagesChange && (
-                <div className="mt-4 flex items-center justify-between border-t border-[var(--p-border)] pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setRecommended(i)}
-                    className={`text-xs ${pkg.recommended ? 'text-[var(--p-ink)]' : 'text-[var(--p-muted)] hover:text-[var(--p-ink)]'}`}
-                  >
-                    {pkg.recommended ? '★ Recommended' : 'Mark recommended'}
-                  </button>
+                <div className="mt-4 flex items-center justify-end border-t border-[var(--p-border)] pt-3">
                   <RemoveButton onRemove={() => removePackage(i)} title="Remove package" />
                 </div>
               )}
