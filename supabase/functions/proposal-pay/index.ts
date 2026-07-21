@@ -190,18 +190,11 @@ Deno.serve(async (req) => {
   let session: any
   if (isRetainer) {
     // monthly / quarterly / semiannual / annual billing cadence
-    const recurring: Record<string, string> =
-      retainerInterval === "annual"
-        ? { "line_items[0][price_data][recurring][interval]": "year" }
-        : {
-            "line_items[0][price_data][recurring][interval]": "month",
-            "line_items[0][price_data][recurring][interval_count]":
-              retainerInterval === "quarterly" ? "3" : retainerInterval === "semiannual" ? "6" : "1",
-          }
     session = await createSession({
       ...base,
       mode: "subscription",
-      ...recurring,
+      "line_items[0][price_data][recurring][interval]": retainerInterval === "annual" ? "year" : "month",
+      "line_items[0][price_data][recurring][interval_count]": retainerInterval === "quarterly" ? "3" : retainerInterval === "semiannual" ? "6" : "1",
     }, brand)
   } else {
     // Try to include US bank transfer (wire) alongside card + ACH debit;
