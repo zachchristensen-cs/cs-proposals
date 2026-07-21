@@ -36,8 +36,6 @@ function resolveSelectedPackage(content: any, selectedPackageId?: string) {
     options.find((p: any) => p.id === selectedPackageId) ??
     // deno-lint-ignore no-explicit-any
     options.find((p: any) => p.id === content.packages?.default_id) ??
-    // deno-lint-ignore no-explicit-any
-    options.find((p: any) => p.recommended) ??
     options[0]
   )
 }
