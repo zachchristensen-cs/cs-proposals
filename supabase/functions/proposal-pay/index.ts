@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
   const productName = `${proposal.client_name || proposal.slug} - ${payment.label}`
 
   const base: Record<string, string> = {
-    "ui_mode": "embedded",
+    "ui_mode": "embedded_page",
     customer: payment.stripe_customer_id,
     return_url: `${origin}/p/${proposal.slug}?payment=success`,
     "line_items[0][price_data][currency]": "usd",
