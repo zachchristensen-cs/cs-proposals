@@ -65,6 +65,8 @@ async function stripeRequest(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     "Content-Type": "application/x-www-form-urlencoded",
+    // embedded_page checkout requires this API version or newer
+    "Stripe-Version": "2026-03-25.dahlia",
   }
 
   const res = await fetch(`https://api.stripe.com/v1${path}`, {
