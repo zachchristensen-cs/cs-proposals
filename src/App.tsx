@@ -11,6 +11,7 @@ import { AdminDashboardPage } from '@/features/dashboard/AdminDashboardPage'
 import { AccountPage } from '@/features/account/AccountPage'
 import { ProposalsPage, NewProposalPage, EditProposalPage, PublicProposalPage } from '@/features/proposals'
 import { TeamPage } from '@/features/team'
+import { SigningsPage } from '@/features/signings'
 import { SettingsPage } from '@/features/settings'
 import { Toaster } from 'sonner'
 
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
                   { path: '/admin/proposals', element: <ProposalsPage /> },
                   { path: '/admin/proposals/new', element: <NewProposalPage /> },
                   { path: '/admin/proposals/:id', element: <EditProposalPage /> },
+                  { path: '/admin/signings', element: <SigningsPage /> },
                   { path: '/admin/team', element: <TeamPage /> },
                 ],
               },
