@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   FileText,
+  Receipt,
   Users,
   Settings,
   LogOut,
@@ -180,6 +181,14 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               onNavigate={onNavigate}
             >
               Proposals
+            </SidebarLink>
+            <SidebarLink
+              to="/admin/signings"
+              icon={Receipt}
+              collapsed={isCollapsed}
+              onNavigate={onNavigate}
+            >
+              Signings & Payments
             </SidebarLink>
           </>
         )}
