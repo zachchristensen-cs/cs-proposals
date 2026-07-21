@@ -17,8 +17,8 @@ export function hasPackages(content: ProposalContent): boolean {
 
 /**
  * Resolves which package is currently selected. Falls back, in order, to the
- * explicitly selected id, the group's default_id, the recommended option, then
- * the first option. Returns null when the proposal has no packages.
+ * explicitly selected id, the group's default_id, then the first option.
+ * Returns null when the proposal has no packages.
  */
 export function resolveSelectedPackage(
   content: ProposalContent,
@@ -29,7 +29,6 @@ export function resolveSelectedPackage(
   return (
     options.find((p) => p.id === selectedPackageId) ??
     options.find((p) => p.id === content.packages?.default_id) ??
-    options.find((p) => p.recommended) ??
     options[0]
   )
 }
