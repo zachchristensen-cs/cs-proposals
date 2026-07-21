@@ -12,6 +12,7 @@ import { NotesSection } from './NotesSection'
 import { RemoveButton } from '../components/RemoveButton'
 import { BRANDS, getBrand } from './brands'
 import { computeAdjustedTotals } from '../lib/selection'
+import { RETAINER_INTERVALS, retainerIntervalConfig } from '../lib/retainerInterval'
 
 interface ProposalRendererProps {
   content: ProposalContent
@@ -29,6 +30,7 @@ interface ProposalRendererProps {
 export function ProposalRenderer({ content, editable, onContentChange, selectable, deselected, onToggleItem, selectedPackageId, onSelectPackage }: ProposalRendererProps) {
   const brand = getBrand(content.brand)
   const isRetainer = content.proposal_type === 'retainer'
+  const intervalConfig = retainerIntervalConfig(content.retainer_interval)
   const adjusted = computeAdjustedTotals(content, deselected ?? new Set(), selectedPackageId)
   const displayTotal = isRetainer
     ? (content.retainer_amount ?? adjusted.total)
@@ -43,7 +45,7 @@ export function ProposalRenderer({ content, editable, onContentChange, selectabl
 
   // Build payment note string for the totals section
   const paymentNote = isRetainer
-    ? 'Billed monthly'
+    ? intervalConfig.billedNote
     : hasPayment
       ? content.payment!.terms.map((t) => t.label).join(' & ').replace(/&([^&]*)$/, '& $1') || undefined
       : undefined
@@ -99,6 +101,27 @@ export function ProposalRenderer({ content, editable, onContentChange, selectabl
                 ))}
               </div>
             </div>
+            {isRetainer && (
+              <div className="mr-4 flex items-center gap-2">
+                <span className="text-sm text-[var(--p-muted)]">Billing</span>
+                <div className="flex overflow-hidden rounded-full border border-[var(--p-border)]">
+                  {RETAINER_INTERVALS.map((iv) => (
+                    <button
+                      key={iv.id}
+                      type="button"
+                      onClick={() => onContentChange({ ...content, retainer_interval: iv.id })}
+                      className={`px-2.5 py-1 text-xs transition-colors ${
+                        intervalConfig.id === iv.id
+                          ? 'bg-[var(--p-ink)] text-[var(--p-bg)]'
+                          : 'text-[var(--p-muted)] hover:text-[var(--p-ink)]'
+                      }`}
+                    >
+                      {iv.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <span className="text-sm text-[var(--p-muted)]">Proposal by</span>
             <div className="flex overflow-hidden rounded-full border border-[var(--p-border)]">
               {Object.values(BRANDS).map((b) => (
@@ -233,6 +256,7 @@ export function ProposalRenderer({ content, editable, onContentChange, selectabl
           <TotalsSection
             total={displayTotal}
             isRetainer={isRetainer}
+            retainerSuffix={intervalConfig.suffix}
             subtotal={adjusted.subtotal}
             discounts={content.discounts}
             discountTotal={adjusted.discountTotal}

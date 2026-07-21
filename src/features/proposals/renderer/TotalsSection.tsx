@@ -9,8 +9,10 @@ interface TotalsSectionProps {
   total: number
   paymentNote?: string
   maintenanceNote?: string
-  /** Retainer proposals show the amount as monthly */
+  /** Retainer proposals show the amount as recurring */
   isRetainer?: boolean
+  /** e.g. "/mo", "/qtr" - shown after the amount for retainers */
+  retainerSuffix?: string
   /** Pre-discount subtotal; shown when discounts exist */
   subtotal?: number
   discounts?: ProposalDiscount[]
@@ -24,6 +26,7 @@ export function TotalsSection({
   paymentNote,
   maintenanceNote,
   isRetainer,
+  retainerSuffix,
   subtotal,
   discounts,
   discountTotal,
@@ -94,12 +97,14 @@ export function TotalsSection({
 
       <div className="flex items-start justify-between">
         <p className="font-serif text-2xl text-[var(--p-muted)]">
-          {isRetainer ? 'Monthly Retainer' : 'Total Estimate'}
+          {isRetainer ? 'Retainer' : 'Total Estimate'}
         </p>
         <div className="text-right">
           <p className="font-serif text-4xl text-[var(--p-accent)]">
             {formatCurrency(total)}
-            {isRetainer && <span className="text-2xl text-[var(--p-muted)]">/mo</span>}
+            {isRetainer && (
+              <span className="text-2xl text-[var(--p-muted)]">{retainerSuffix ?? '/mo'}</span>
+            )}
           </p>
           {hasDiscounts && (discountTotal ?? 0) > 0 && (
             <p className="mt-1 text-sm text-[var(--p-muted)]">

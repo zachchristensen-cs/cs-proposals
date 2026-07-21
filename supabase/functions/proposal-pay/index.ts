@@ -168,7 +168,10 @@ Deno.serve(async (req) => {
   }
 
   const origin = req.headers.get("origin") || Deno.env.get("APP_URL") || ""
-  const isRetainer = payment.label === "Monthly Retainer"
+  const isRetainer = String(payment.label ?? "").includes("Retainer")
+  // deno-lint-ignore no-explicit-any
+  const content: any = proposal.content ?? {}
+  const retainerInterval = String(content.retainer_interval ?? "monthly")
   const cents = String(Math.round(Number(payment.amount) * 100))
   const productName = `${proposal.client_name || proposal.slug} - ${payment.label}`
 
@@ -186,10 +189,19 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   let session: any
   if (isRetainer) {
+    // monthly / quarterly / semiannual / annual billing cadence
+    const recurring: Record<string, string> =
+      retainerInterval === "annual"
+        ? { "line_items[0][price_data][recurring][interval]": "year" }
+        : {
+            "line_items[0][price_data][recurring][interval]": "month",
+            "line_items[0][price_data][recurring][interval_count]":
+              retainerInterval === "quarterly" ? "3" : retainerInterval === "semiannual" ? "6" : "1",
+          }
     session = await createSession({
       ...base,
       mode: "subscription",
-      "line_items[0][price_data][recurring][interval]": "month",
+      ...recurring,
     }, brand)
   } else {
     // Try to include US bank transfer (wire) alongside card + ACH debit;

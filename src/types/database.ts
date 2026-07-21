@@ -140,6 +140,9 @@ export interface ProposalContent {
   /** project = 50/25/25 installments; retainer = full recurring amount */
   proposal_type?: 'project' | 'retainer'
 
+  /** Billing cadence for retainers; defaults to monthly */
+  retainer_interval?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
+
   /** Monthly amount for retainer proposals; defaults to total */
   retainer_amount?: number
 

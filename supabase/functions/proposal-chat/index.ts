@@ -80,7 +80,7 @@ HARD RULE: Never use em dashes (—) or double hyphens (--) anywhere: not in cha
 
 HARD RULE: Every proposal must include the "team" section, populated with the full roster from the Team Members list, regardless of tier.
 
-HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJECT proposals (the default) use exactly three payment installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total. RETAINER proposals (ongoing monthly engagements) have NO installment split: set "retainer_amount" to the monthly amount, set "total" to the same monthly amount, and payment terms should be a single entry labeled "Monthly Retainer" with the monthly amount and a description like "Billed monthly".
+HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJECT proposals (the default) use exactly three payment installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total. RETAINER proposals (ongoing engagements) have NO installment split: set "retainer_amount" to the recurring amount per billing period, set "retainer_interval" to the cadence Walker specifies ("monthly" is the default; "quarterly", "semiannual", and "annual" are also supported - Ammo Maintenance is quarterly), set "total" to the same recurring amount, and payment terms should be a single entry labeled "Retainer" with that amount and a description like "Billed monthly" / "Billed quarterly" matching the cadence.
 
 `
 
@@ -112,6 +112,7 @@ The ProposalContent JSON schema:
   "brand?": "cambridge" | "ammo",
   "proposal_type?": "project" | "retainer",
   "retainer_amount?": number,
+  "retainer_interval?": "monthly" | "quarterly" | "semiannual" | "annual",
   "discounts?": [{ "label": string, "amount?": number, "percent?": number }],
   "cover": { "client_name": string, "prepared_for?": string, "date": string, "timeline?": string, "description": string },
   "opportunity?": { "paragraphs": string[] },
