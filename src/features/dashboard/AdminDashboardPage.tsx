@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FileText, Users, User, Settings } from 'lucide-react'
+import { FileText, Receipt, Users, User, Settings } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
 const tools = [
@@ -8,6 +8,12 @@ const tools = [
     description: 'Create and manage client proposals',
     icon: FileText,
     href: '/admin/proposals',
+  },
+  {
+    title: 'Signings & Payments',
+    description: 'Who signed and payment status',
+    icon: Receipt,
+    href: '/admin/signings',
   },
   {
     title: 'Team',
