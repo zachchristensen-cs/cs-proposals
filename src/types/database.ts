@@ -67,14 +67,12 @@ export interface ProposalPackage {
   summary?: string
   /** Bullet list of what's included in this package */
   features?: string[]
-  /** Visually highlighted and selected by default */
-  recommended?: boolean
 }
 
 /** A set of mutually-exclusive packages/tiers; the client picks exactly one and pays that. */
 export interface ProposalPackageGroup {
   intro?: string
-  /** id of the package selected by default; falls back to the recommended one, then the first */
+  /** id of the package selected by default; falls back to the first option */
   default_id?: string
   options: ProposalPackage[]
 }
@@ -139,9 +137,6 @@ export interface ProposalContent {
 
   /** project = 50/25/25 installments; retainer = full recurring amount */
   proposal_type?: 'project' | 'retainer'
-
-  /** Billing cadence for retainers; defaults to monthly */
-  retainer_interval?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 
   /** Monthly amount for retainer proposals; defaults to total */
   retainer_amount?: number
