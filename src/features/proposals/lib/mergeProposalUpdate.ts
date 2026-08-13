@@ -12,8 +12,35 @@ import type { ProposalContent } from '@/types/database'
  * snapshot that was sent to Claude (`sentContent`). If a section is
  * identical to what was sent, skip it — keep the user's current version
  * (which may include further manual edits made while Claude was streaming).
- * Only apply sections that Claude actually changed.
+ * Only apply sections that Claude actually changed. A section Claude
+ * explicitly sets to null is removed (how optional sections get deleted);
+ * a section Claude omits entirely is left untouched.
+ *
+ * NOTE: every top-level ProposalContent key must be listed here. A key
+ * missing from this list means Claude's updates to it are silently dropped —
+ * this is exactly what broke packages/proposal_type/discounts updates when
+ * those fields were added without updating this list.
  */
+const SECTION_KEYS: (keyof ProposalContent)[] = [
+  'brand',
+  'proposal_type',
+  'retainer_amount',
+  'discounts',
+  'cover',
+  'opportunity',
+  'personas',
+  'phases',
+  'packages',
+  'total',
+  'hide_total',
+  'payment',
+  'maintenance',
+  'team',
+  'notes',
+  'timing_note',
+  'contact',
+]
+
 export function mergeProposalUpdate(
   currentContent: ProposalContent,
   sentContent: ProposalContent,
@@ -21,21 +48,7 @@ export function mergeProposalUpdate(
 ): ProposalContent {
   const merged = { ...currentContent }
 
-  const sectionKeys: (keyof ProposalContent)[] = [
-    'cover',
-    'opportunity',
-    'personas',
-    'phases',
-    'total',
-    'payment',
-    'maintenance',
-    'team',
-    'notes',
-    'timing_note',
-    'contact',
-  ]
-
-  for (const key of sectionKeys) {
+  for (const key of SECTION_KEYS) {
     if (!(key in claudeOutput)) continue
 
     const claudeValue = claudeOutput[key]
@@ -46,8 +59,13 @@ export function mergeProposalUpdate(
     const sentJSON = JSON.stringify(sentValue)
 
     if (claudeJSON !== sentJSON) {
-      // Claude changed this section — apply it
-      ;(merged as Record<string, unknown>)[key] = claudeValue
+      if (claudeValue === null || claudeValue === undefined) {
+        // Explicit null = remove the section (e.g. "get rid of maintenance")
+        delete (merged as Record<string, unknown>)[key]
+      } else {
+        // Claude changed this section — apply it
+        ;(merged as Record<string, unknown>)[key] = claudeValue
+      }
     }
     // Otherwise: Claude returned it unchanged — keep current (user may have edited)
   }
