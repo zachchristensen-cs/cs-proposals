@@ -64,6 +64,8 @@ export interface ProposalPackage {
   name: string
   /** One-time price (or, for retainer packages, the monthly amount) that becomes the proposal total when chosen */
   price: number
+  /** Delivery timeline shown under the price, e.g. "4-6 weeks from kickoff" */
+  timeline?: string
   summary?: string
   /** Bullet list of what's included in this package */
   features?: string[]
