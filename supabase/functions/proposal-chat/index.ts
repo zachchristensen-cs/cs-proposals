@@ -80,12 +80,12 @@ HARD RULE: Never use em dashes (—) or double hyphens (--) anywhere: not in cha
 
 HARD RULE: Every proposal must include the "team" section, populated with the full roster from the Team Members list, regardless of tier.
 
-HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJECT proposals (the default) use exactly three payment installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total. RETAINER proposals (ongoing monthly engagements) have NO installment split: set "retainer_amount" to the monthly amount, set "total" to the same monthly amount, and payment terms should be a single entry labeled "Monthly Retainer" with the monthly amount and a description like "Billed monthly".
+HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJECT proposals (the default) use exactly three payment installments calculated from the total estimate: 50% at kickoff, 25% at design approval, and 25% at pre-launch sign-off. Label them "Kickoff", "Design approval", and "Pre-launch sign-off". The three amounts must sum to the total. RETAINER proposals (ongoing recurring engagements) have NO installment split: set "retainer_amount" to the recurring amount, set "total" to the same amount, set "retainer_interval" to the billing cadence ("monthly", "quarterly", "semiannual", or "annual"; default "monthly"), and payment terms should be a single entry labeled to match the cadence (e.g. "Monthly Retainer" / "Billed monthly", "Quarterly Retainer" / "Billed quarterly").
 
 `
 
   if (options.currentContent) {
-    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. ALWAYS begin your reply with one or two conversational sentences summarizing what you changed, BEFORE the <proposal_update> block. Never reply with the JSON block alone. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. To REMOVE an optional section entirely (e.g. "get rid of the maintenance section"), set its key to null in the returned JSON; omitting a key leaves the current version unchanged. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
+    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. ALWAYS begin your reply with one or two conversational sentences summarizing what you changed, BEFORE the <proposal_update> block. Never reply with the JSON block alone. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. HARD RULE: change ONLY the fields the user asked about. Copy every other value VERBATIM from the current proposal JSON below, especially prices, package options, names, and amounts. Never re-derive or "correct" values from earlier conversation history; the current proposal JSON below is the single source of truth and already reflects manual edits. Your past replies in this conversation have their JSON blocks stripped from the history; that does NOT mean they failed to apply. To REMOVE an optional section entirely (e.g. "get rid of the maintenance section"), set its key to null in the returned JSON; omitting a key leaves the current version unchanged. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
 
 <current_proposal>
 ${JSON.stringify(options.currentContent, null, 2)}
@@ -112,6 +112,7 @@ The ProposalContent JSON schema:
   "brand?": "cambridge" | "ammo",
   "proposal_type?": "project" | "retainer",
   "retainer_amount?": number,
+  "retainer_interval?": "monthly" | "quarterly" | "semiannual" | "annual",
   "discounts?": [{ "label": string, "amount?": number, "percent?": number }],
   "cover": { "client_name": string, "prepared_for?": string, "date": string, "timeline?": string, "description": string },
   "opportunity?": { "paragraphs": string[] },
@@ -132,7 +133,7 @@ The ProposalContent JSON schema:
   "packages?": {
     "intro?": string,
     "default_id?": string,
-    "options": [{ "id": string, "name": string, "price": number, "summary?": string, "features?": string[] }]
+    "options": [{ "id": string, "name": string, "price": number, "timeline?": string, "summary?": string, "features?": string[] }]
   },
   "payment": { "terms": [{ "label": string, "amount": number, "description": string }] },
   "maintenance?": { "tiers": [{ "name": string, "price": string, "summary": string, "description": string }], "recommendation?": string },
@@ -249,15 +250,29 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: ANTHROPIC_MODEL,
-        max_tokens: 8096,
+        // Large cap: a complete proposal JSON for a big engagement can exceed
+        // 8k output tokens, which used to truncate mid-JSON and silently drop
+        // the update.
+        max_tokens: 32000,
         stream: true,
         system: systemPrompt,
-        messages: messages.map(
-          (m: { role: string; content: string | unknown[] }) => ({
-            role: m.role,
-            content: m.content,
-          }),
-        ),
+        messages: messages
+          // Drop empty messages: historical assistant turns were saved with
+          // their <proposal_update> JSON stripped, sometimes leaving "".
+          // Empty content can 400 the API and confuses the model into
+          // believing its past updates never happened.
+          .filter(
+            (m: { role: string; content: string | unknown[] }) =>
+              typeof m.content === "string"
+                ? m.content.trim().length > 0
+                : Array.isArray(m.content) && m.content.length > 0,
+          )
+          .map(
+            (m: { role: string; content: string | unknown[] }) => ({
+              role: m.role,
+              content: m.content,
+            }),
+          ),
       }),
     })
 
