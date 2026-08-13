@@ -85,7 +85,7 @@ HARD RULE: Every proposal sets "proposal_type" to "project" or "retainer". PROJE
 `
 
   if (options.currentContent) {
-    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. To REMOVE an optional section entirely (e.g. "get rid of the maintenance section"), set its key to null in the returned JSON; omitting a key leaves the current version unchanged. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
+    prompt += `The current proposal JSON is below. When asked for changes, return the COMPLETE updated proposal JSON wrapped in <proposal_update> tags. ALWAYS begin your reply with one or two conversational sentences summarizing what you changed, BEFORE the <proposal_update> block. Never reply with the JSON block alone. Always recalculate prices and totals when amounts change. Include ALL sections in the returned JSON, even ones that didn't change. To REMOVE an optional section entirely (e.g. "get rid of the maintenance section"), set its key to null in the returned JSON; omitting a key leaves the current version unchanged. Preserve display flags like "hide_total" and per-phase "hide_price" exactly as they appear unless explicitly asked to change them.
 
 <current_proposal>
 ${JSON.stringify(options.currentContent, null, 2)}
