@@ -155,6 +155,16 @@ export function PackagesSection({
                 )}
               </div>
 
+              {(pkg.timeline || editable) && (
+                <p className="mt-1 text-xs text-[var(--p-muted)]">
+                  {editable ? (
+                    <EditableText value={pkg.timeline ?? ''} onChange={(v) => updatePackage(i, { timeline: v })} placeholder="Timeline (e.g. 4-6 weeks)" />
+                  ) : (
+                    pkg.timeline
+                  )}
+                </p>
+              )}
+
               {(pkg.summary || editable) && (
                 <p className="mt-2 text-sm text-[var(--p-muted)]">
                   {editable ? (
