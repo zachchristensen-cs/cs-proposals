@@ -73,6 +73,21 @@ export function useProposalChat({ onStreamUpdate }: UseProposalChatOptions) {
       setIsGenerating(false)
 
       const result = parseProposalResponse(bufferRef.current)
+
+      // The model sometimes returns ONLY the <proposal_update> block with no
+      // conversational text. Without a fallback the chat bubble renders empty
+      // and the tool looks unresponsive even though the update applied.
+      if (!result.displayText) {
+        if (result.proposalUpdate) {
+          result.displayText = 'Done. I updated the proposal, take a look at the preview.'
+        } else if (result.parseError) {
+          result.displayText =
+            'I generated an update but it could not be applied (invalid JSON). Please try again.'
+        } else if (bufferRef.current.includes('<proposal_update>')) {
+          result.displayText =
+            'The update was cut off before it finished. Please try again, or break the request into smaller steps.'
+        }
+      }
       onStreamUpdate(assistantId, result.displayText)
 
       return result
