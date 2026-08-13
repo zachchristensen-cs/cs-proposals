@@ -2,7 +2,7 @@
 
 export type UserRole = 'admin' | 'member'
 
-// ─── Core Tables ─────────────────────────────────────────────
+// ─── Core Tables ────────────────────────────────────────────
 
 export interface User {
   id: string
@@ -45,7 +45,7 @@ export interface AgencyTeamMember {
   created_at: string
 }
 
-// ─── Proposals ──────────────────────────────────────────────
+// ─── Proposals ─────────────────────────────────────────────
 
 export type ProposalStatus = 'draft' | 'sent' | 'signed' | 'archived'
 export type ProposalTier = 1 | 2 | 3
@@ -140,6 +140,9 @@ export interface ProposalContent {
 
   /** Monthly amount for retainer proposals; defaults to total */
   retainer_amount?: number
+
+  /** Billing cadence for retainer proposals; defaults to monthly */
+  retainer_interval?: 'monthly' | 'quarterly' | 'semiannual' | 'annual'
 
   /** Discounts subtracted from the subtotal on the public page and invoices */
   discounts?: ProposalDiscount[]
