@@ -1,5 +1,5 @@
 import type { ProposalContent } from '@/types/database'
-import { computeAdjustedTotals } from './selection'
+import { computeAdjustedTotals, allOptionalKeys } from './selection'
 
 /**
  * Standard payment schedule for project proposals: 50% at kickoff, 25% at
@@ -25,13 +25,12 @@ export function recalculateTotals(proposal: ProposalContent): ProposalContent {
   })
 
   // Project total. computeAdjustedTotals is the single source of truth for
-  // pricing semantics: package proposals use the default option's price as the
-  // base (mandatory phases are descriptive scope, NOT summed), optional
-  // add-ons default to selected, and discounts are subtracted. Classic
-  // phase-only proposals still total up their phases. Previously this summed
-  // phases unconditionally, which zeroed the total (and then the payment
-  // terms) on package-based proposals with no priced phases.
-  updated.total = computeAdjustedTotals(updated, new Set<string>()).total
+  // pricing semantics: package proposals use the default option's price as
+  // the base (mandatory phases are descriptive scope, NOT summed) and
+  // discounts are subtracted. Optional add-ons are OPT-IN: the quoted total
+  // is the base scope only; add-ons are charged only when the client selects
+  // them on the public page.
+  updated.total = computeAdjustedTotals(updated, allOptionalKeys(updated)).total
 
   // Recalculate payment terms.
   // Project proposals with the standard three terms use 50% at kickoff, 25%
@@ -50,11 +49,15 @@ export function recalculateTotals(proposal: ProposalContent): ProposalContent {
           ? terms.map((t) => (t.amount || 0) / currentSum)
           : terms.map(() => 1 / terms.length)
 
-    const amounts = ratios.map((r) => Math.round(updated.total * r))
-    // Rounding can leave the sum a dollar or two off; put the difference on
-    // the first (kickoff) payment so the terms always sum to the total.
-    const drift = updated.total - amounts.reduce((sum, a) => sum + a, 0)
-    amounts[0] += drift
+    // Round each term; the last term absorbs rounding drift so the schedule
+    // always sums exactly to the total.
+    let allocated = 0
+    const amounts = ratios.map((r, i) => {
+      if (i === ratios.length - 1) return Math.max(0, updated.total - allocated)
+      const amt = Math.round(updated.total * r)
+      allocated += amt
+      return amt
+    })
 
     updated.payment.terms = terms.map((term, i) => ({
       ...term,

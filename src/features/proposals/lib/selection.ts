@@ -145,3 +145,20 @@ export function hasSelectableItems(content: ProposalContent): boolean {
     (phase) => phase.optional || (phase.items ?? []).some((it) => it.optional && it.price > 0),
   )
 }
+
+/**
+ * Selection keys for every optional phase and optional priced line item.
+ * Optional add-ons are OPT-IN: they start deselected, so the quoted total is
+ * the base scope only and grows when the client adds them. Use this as the
+ * initial `deselected` set wherever totals are computed from default state.
+ */
+export function allOptionalKeys(content: ProposalContent): Set<string> {
+  const keys = new Set<string>()
+  ;(content.phases ?? []).forEach((phase, pi) => {
+    if (phase.optional) keys.add(phaseKey(pi))
+    ;(phase.items ?? []).forEach((item, ii) => {
+      if (item.optional && item.price > 0) keys.add(itemKey(pi, ii))
+    })
+  })
+  return keys
+}

@@ -25,6 +25,7 @@ const SECTION_KEYS: (keyof ProposalContent)[] = [
   'brand',
   'proposal_type',
   'retainer_amount',
+  'retainer_interval',
   'discounts',
   'cover',
   'opportunity',
