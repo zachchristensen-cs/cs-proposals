@@ -5,7 +5,7 @@ import type { ProposalContent } from '@/types/database'
 import { ProposalRenderer } from './renderer/ProposalRenderer'
 import { SignatureSection } from './renderer/SignatureSection'
 import { useViewTracking } from './hooks/useViewTracking'
-import { computeAdjustedTotals, hasSelectableItems, hasPackages, resolveSelectedPackage } from './lib/selection'
+import { computeAdjustedTotals, hasSelectableItems, hasPackages, resolveSelectedPackage, allOptionalKeys } from './lib/selection'
 import { transformContentForBrand } from './lib/brandText'
 
 export function PublicProposalPage() {
@@ -44,6 +44,9 @@ export function PublicProposalPage() {
       } else {
         const loaded = transformContentForBrand(data.content as ProposalContent)
         setContent(loaded)
+        // Optional add-ons are opt-in: start them deselected so the quoted
+        // total is the base scope until the client adds them.
+        setDeselected(allOptionalKeys(loaded))
         setSelectedPackageId(resolveSelectedPackage(loaded, undefined)?.id)
         setSignedAt((data as { signed_at?: string | null }).signed_at ?? null)
       }
