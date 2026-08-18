@@ -13,6 +13,7 @@ import { SaveIndicator } from './components/SaveIndicator'
 import { VersionHistory } from './components/VersionHistory'
 import { recalculateTotals } from './lib/recalculateTotals'
 import { mergeProposalUpdate } from './lib/mergeProposalUpdate'
+import { allOptionalKeys, hasSelectableItems } from './lib/selection'
 import { useUndoStack } from './hooks/useUndoStack'
 import { useProposalChat } from './hooks/useProposalChat'
 import { downloadProposalPdf } from './lib/downloadPdf'
@@ -103,6 +104,10 @@ export function EditProposalPage() {
   const [presenting, setPresenting] = useState(false)
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [chatWidth, setChatWidth] = useState(40) // percentage
+  // Preview mirrors the client experience: optional add-ons start unchecked
+  // (opt-in) and the totals react as they're toggled. Tracks what the admin
+  // has CHECKED so newly added add-ons default to unchecked.
+  const [previewChecked, setPreviewChecked] = useState<Set<string>>(new Set())
   const isDragging = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -614,6 +619,20 @@ export function EditProposalPage() {
             content={content}
             editable
             onContentChange={handleContentChange}
+            selectable={hasSelectableItems(content)}
+            deselected={(() => {
+              const keys = allOptionalKeys(content)
+              for (const k of previewChecked) keys.delete(k)
+              return keys
+            })()}
+            onToggleItem={(key) =>
+              setPreviewChecked((prev) => {
+                const next = new Set(prev)
+                if (next.has(key)) next.delete(key)
+                else next.add(key)
+                return next
+              })
+            }
           />
         </div>
       </div>
