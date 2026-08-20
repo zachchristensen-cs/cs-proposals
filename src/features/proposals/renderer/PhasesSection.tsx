@@ -12,6 +12,8 @@ interface PhasesSectionProps {
   editable?: boolean
   hideNumber?: boolean
   hidePricing?: boolean
+  /** Hide per-line-item prices while still showing the phase subtotal (presentation mode) */
+  hideItemPricing?: boolean
   onPhasesChange?: (phases: ProposalPhase[]) => void
   /** Public page: render optional items with checkboxes */
   selectable?: boolean
@@ -26,6 +28,7 @@ export function PhasesSection({
   editable,
   hideNumber,
   hidePricing,
+  hideItemPricing,
   onPhasesChange,
   selectable,
   deselected,
@@ -341,7 +344,7 @@ export function PhasesSection({
                         </p>
                       )}
                     </div>
-                    {!hidePricing && (
+                    {!hidePricing && !hideItemPricing && (
                       <span className="shrink-0 text-sm text-[var(--p-ink)]">
                         {editable ? (
                           <EditablePrice
